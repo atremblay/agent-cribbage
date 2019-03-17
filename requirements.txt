@@ -1,0 +1,2 @@
+gym
+-e git://github.com/atremblay/gym-cribbage.git@09323c4f03702b8b374cb2f0a4fa05c926b2487e#egg=gym-cribbage
