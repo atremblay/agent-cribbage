@@ -28,17 +28,32 @@ class Agent:
         return choose_phase[env.phase](state, env)
 
     def choose_phase0(self, state, env):
+        """
+        Choose the card to drop in the crib (phase 0). Since the step function plays one card at a time, a buffer is
+        created at first step, and then buffer is emptied for subsequent pass. This selection is based on the after
+        state (state after dropping cards in the crib).
+
+        :param state:
+        :param env:
+        :return:
+        """
+
+        # If drop buffer is empty (phase 0 begin)
         if len(self.cards_2_drop_phase0) == 0:
             # Unique 4 cards permutations (Good for all numbers of players)
             s_prime_combinations = list(combinations(state.hand, 4))
-            S_prime_phase0 = np.array([np.append(Stack(p).state, env.dealer == state.hand_id) for p in s_prime_combinations])
+            # Append dealer to input and convert it to vector state
+            S_prime_phase0 = np.array([np.append(Stack(p).state, env.dealer == state.hand_id)
+                                       for p in s_prime_combinations])
 
+            # Choose cards to drop according to policy
             idx_s_prime = self.policy.choose(S_prime_phase0, self.value_function[env.phase])
 
+            # Remove cards that stay in hand
             self.cards_2_drop_phase0 = copy.deepcopy(state.hand)
-            #Remove cards that stay in hand
             tuple(self.cards_2_drop_phase0.discard(card) for card in s_prime_combinations[idx_s_prime])
 
+        # Gives next card to drop, and update drop buffer
         card2drop, self.cards_2_drop_phase0 = self.cards_2_drop_phase0[0], self.cards_2_drop_phase0[1:]
 
         return card2drop
