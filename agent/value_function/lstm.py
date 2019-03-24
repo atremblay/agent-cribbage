@@ -10,22 +10,23 @@ class LSTM(ValueFunction):
         """
         super().__init__()
 
-        self.lstm = nn.LSTM(input_size=104, hidden_size=208, num_layers=2)
+        self.lstm = nn.LSTM(input_size=52, hidden_size=104, num_layers=2, batch_first=True)
 
         # Logistic Regression
         self.clf = nn.Sequential(
-            nn.Linear(208, 416),
+            nn.Linear(104, 52),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(416, 1),
+            nn.Linear(52, 1),
             nn.ReLU(True),
         )
 
         self.apply(self.weights_init)
 
     def forward(self, x):
-        out = self.lstm(x)
-        out = self.clf(out.view(out.size(0), -1))
+        out, (hidden, cell) = self.lstm(x)
+        out = out[:, -1, :] # Only keeps last value of sequence
+        out = self.clf(out)
         return out
 
 

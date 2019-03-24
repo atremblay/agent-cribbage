@@ -15,4 +15,4 @@ class EpsilonGreedy(Policy):
         if self.epsilon >= random.uniform(0, 1):
             return random.randint(0, len(V_s)-1)
         else:
-            return np.argmax(V_s)
+            return int(np.argmax(V_s))
