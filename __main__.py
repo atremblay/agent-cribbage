@@ -13,7 +13,10 @@ def agents_init(args):
     agents = []
     agent_args = [{'name': args['algo'], 'kwargs': args.get_algo_args()},
                   {'name': args['policy'], 'kwargs': args.get_policy_args()},
-                  {'name': args['value_function'], 'kwargs': args.get_value_function_args()}]
+                  {
+                   'name0': args['value_function0'], 'kwargs0': args.get_value_function_args()[0],
+                   'name1': args['value_function1'], 'kwargs1': args.get_value_function_args()[1]
+                   }]
 
     agent = Agent(*agent_args)
 
@@ -33,16 +36,18 @@ if __name__ == "__main__":
     env = gym.make('cribbage-v0')
 
     agents = agents_init(args)
-    winner, hand = None, 0
+    winner, hand, dealer = None, 0, None
     while winner is None:
-        state, reward, done, debug = env.reset()
+
+        state, reward, done, debug = env.reset(dealer)
         hand += 1
         args.logger.info('Hand:' + str(hand))
+
         while not done:
 
-            args.logger.info('\tCrib: ' + str(env.crib)+ ' - Table_Count: '+str(env.table_value))
+            args.logger.info('\tCrib: ' + str(env.crib) + ' - Table_Count: '+str(env.table_value))
             if env.phase < 2:
-                idx_action = agents[env.player].policy.choose(state.hand)
+                idx_action = agents[env.player].choose(state.hand, env.phase)
                 args.logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
                                  ' chooses from: ' + str(state.hand) + ' -> ' + str(state.hand[idx_action]))
                 state, reward, done, debug = env.step(state.hand[idx_action])
@@ -58,5 +63,8 @@ if __name__ == "__main__":
             if agents[env.last_player].total_points >= 121:
                 winner = env.last_player
                 done = True
+
+        # Change dealer
+        dealer = env.next_player(env.dealer)
 
     args.logger.info('winner:' + str(winner))

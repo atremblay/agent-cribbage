@@ -9,6 +9,5 @@ class Random(Policy):
     def __init__(self):
         super().__init__()
 
-    @staticmethod
-    def choose(actions):
+    def choose(self, actions, value_function):
         return random.randint(0, len(actions)-1)

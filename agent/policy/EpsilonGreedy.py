@@ -11,8 +11,8 @@ class EpsilonGreedy(Policy):
         self.epsilon = epsilon
         super(EpsilonGreedy).__init__()
 
-    def prob(self, Q_s):
-        if self.epsilon < random.uniform:
-            return self.ramdom_choice(np.array([self.epsilon/len(Q_s)]*len(Q_s))) #Todo: to verify
+    def prob(self, V_s):
+        if self.epsilon < random.uniform(0, 1):
+            return random.randint(0, len(V_s)-1)
         else:
-            return np.argmax(Q_s)
+            return np.argmax(V_s)

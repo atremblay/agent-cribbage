@@ -19,7 +19,8 @@ class Args:
         # Add arguments
         self.parser.add_argument('algo', choices=['QLearning'])
         self.parser.add_argument('policy', choices=['Boltzmann', 'EpsilonGreedy', 'Random'])
-        self.parser.add_argument('value_function', choices=['LSTM'])
+        self.parser.add_argument('value_function0', choices=['FFW'])
+        self.parser.add_argument('value_function1', choices=['LSTM', 'FFW'])
         self.parser.add_argument('--cuda', default=False, action='store_true')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
@@ -51,8 +52,13 @@ class Args:
             return {}
 
     def get_value_function_args(self):
-        if self.args.value_function == 'LSTM':
-            return {}
+        if self.args.value_function0 == 'FFW':
+            VF0 = {}
+
+        if self.args.value_function1 in ['LSTM', 'FFW']:
+            VF1 = {}
+
+        return VF0, VF1
 
     def resolve_cuda(self, net):
 
