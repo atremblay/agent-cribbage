@@ -47,10 +47,10 @@ if __name__ == "__main__":
 
             args.logger.info('\tCrib: ' + str(env.crib) + ' - Table_Count: '+str(env.table_value))
             if env.phase < 2:
-                idx_action = agents[env.player].choose(state.hand, env.phase)
+                card = agents[env.player].choose(state, env)
                 args.logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
-                                 ' chooses from: ' + str(state.hand) + ' -> ' + str(state.hand[idx_action]))
-                state, reward, done, debug = env.step(state.hand[idx_action])
+                                 ' chooses from: ' + str(state.hand) + ' -> ' + str(card))
+                state, reward, done, debug = env.step(card)
 
             else:
                 state, reward, done, debug = env.step([])

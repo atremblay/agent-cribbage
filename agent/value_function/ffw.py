@@ -4,7 +4,7 @@ from .register import register
 
 
 @register
-class FFW(nn.Module, ValueFunction):
+class FFW(ValueFunction):
     def __init__(self):
         """
         """
@@ -12,10 +12,10 @@ class FFW(nn.Module, ValueFunction):
 
         # Logistic Regression
         self.ffw = nn.Sequential(
-            nn.Linear(52*2, 208),
+            nn.Linear(53, 106),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(208, 1),
+            nn.Linear(106, 1),
             nn.ReLU(True),
         )
 

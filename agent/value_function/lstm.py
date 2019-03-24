@@ -4,7 +4,7 @@ from .register import register
 
 
 @register
-class LSTM(nn.Module, ValueFunction):
+class LSTM(ValueFunction):
     def __init__(self):
         """
         """

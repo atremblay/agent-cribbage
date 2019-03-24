@@ -12,7 +12,7 @@ class EpsilonGreedy(Policy):
         super(EpsilonGreedy).__init__()
 
     def prob(self, V_s):
-        if self.epsilon < random.uniform(0, 1):
+        if self.epsilon >= random.uniform(0, 1):
             return random.randint(0, len(V_s)-1)
         else:
             return np.argmax(V_s)
