@@ -13,10 +13,9 @@ class Boltzmann(Policy):
         Q_s_Softmax = self.softmax(Q_s, self.tao)
         return self.ramdom_choice(Q_s_Softmax)
 
-    @staticmethod
-    def softmax(x, tao, axis=None):
+    def softmax(self, x, axis=None):
         "Stable definition of Softmax"
         x = x - x.max(axis=axis, keepdims=True)
-        y = np.exp(x / tao)
+        y = np.exp(x / self.tao)
         return y / y.sum(axis=axis, keepdims=True)
 
