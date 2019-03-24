@@ -47,7 +47,7 @@ class Agent:
                                        for p in s_prime_combinations])
 
             # Choose cards to drop according to policy
-            idx_s_prime = self.policy.choose(S_prime_phase0, self.value_function[env.phase])
+            idx_s_prime = self.policy.choose([S_prime_phase0], self.value_function[env.phase])
 
             # Remove cards that stay in hand
             self.cards_2_drop_phase0 = copy.deepcopy(state.hand)
@@ -62,11 +62,13 @@ class Agent:
 
         hand = np.expand_dims(np.array([c.state for c in state.hand]), axis=1)
 
+        # If has card on the table
         if len(env.table) != 0:
             table_cards = np.expand_dims(np.array([card.state for card in env.table]), 0)
             table_cards_repeated = np.repeat(table_cards, len(state.hand), axis=0)
             hand = np.append(table_cards_repeated, hand, axis=1)
 
-        idx_s_prime = self.policy.choose(hand, self.value_function[env.phase])
+        idx_s_prime = self.policy.choose([hand, np.repeat(np.expand_dims(env.discarded.state, axis=0),
+                                                          len(state.hand), axis=0)], self.value_function[env.phase])
         # idx_s_prime = policy_registry['Random']().choose(np.array([c.state for c in state.hand]), None)
         return state.hand[idx_s_prime]

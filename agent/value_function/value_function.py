@@ -12,9 +12,7 @@ class ValueFunction(nn.Module):
     def update(self, batch):
         pass
 
-    def evaluate(self, x):
+    def evaluate(self, xs):
         self.eval()
-        return self.forward(torch.tensor(x, dtype=torch.float))
-
-    def forward(self, x):
-        pass
+        xs = [torch.tensor(x, dtype=torch.float) for x in xs]
+        return self.forward(*xs)

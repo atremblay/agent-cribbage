@@ -1,7 +1,7 @@
 from .value_function import ValueFunction
 import torch.nn as nn
 from .register import register
-
+import torch
 
 @register
 class LSTM(ValueFunction):
@@ -14,7 +14,7 @@ class LSTM(ValueFunction):
 
         # Logistic Regression
         self.clf = nn.Sequential(
-            nn.Linear(104, 52),
+            nn.Linear(104+52, 52),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(52, 1),
@@ -23,10 +23,11 @@ class LSTM(ValueFunction):
 
         self.apply(self.weights_init)
 
-    def forward(self, x):
+    def forward(self, x, discarded):
+
         out, (hidden, cell) = self.lstm(x)
-        out = out[:, -1, :] # Only keeps last value of sequence
-        out = self.clf(out)
+        out = out[:, -1, :]  # Only keeps last value of sequence
+        out = self.clf(torch.cat((out, discarded), dim=1))
         return out
 
 
