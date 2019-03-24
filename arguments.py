@@ -18,7 +18,8 @@ class Args:
         self.parser = argparse.ArgumentParser()
         # Add arguments
         self.parser.add_argument('algo', choices=['QLearning'])
-        self.parser.add_argument('policy', choices=['Boltzmann', 'EpsilonGreedy'])
+        self.parser.add_argument('policy', choices=['Boltzmann', 'EpsilonGreedy', 'Random'])
+        self.parser.add_argument('value_function', choices=['LSTM'])
         self.parser.add_argument('--cuda', default=False, action='store_true')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
@@ -26,6 +27,7 @@ class Args:
         self.parser.add_argument("--lr", default=1e-3, type=float)
         self.parser.add_argument("--tao", default=1, type=float)
         self.parser.add_argument("--epsilon", default=1e-3, type=float)
+        self.parser.add_argument("--number_player", default=2, type=int)
         self.args = self.parser.parse_args()
 
         self.args.save = os.path.join(self.args.save, getpass.getuser(), 'agent-cribbage')
@@ -41,9 +43,15 @@ class Args:
             return {'tao': self.args.tao}
         elif self.args.policy == 'EpsilonGreedy':
             return {'epsilon': self.args.epsilon}
+        elif self.args.policy == 'Random':
+            return {}
 
     def get_algo_args(self):
         if self.args.algo == 'QLearning':
+            return {}
+
+    def get_value_function_args(self):
+        if self.args.value_function == 'LSTM':
             return {}
 
     def resolve_cuda(self, net):

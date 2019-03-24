@@ -1,4 +1,4 @@
 gym
--e git://github.com/atremblay/gym-cribbage.git@09323c4f03702b8b374cb2f0a4fa05c926b2487e#egg=gym-cribbage
+-e git://github.com/atremblay/gym-cribbage.git@e7732e6abcc89be5ecac82f63dddaeaa40a5ffeb#egg=gym-cribbage
 torchvision
 pyyaml
