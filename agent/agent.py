@@ -1,4 +1,3 @@
-from .algorithm.register import registry as algo_registry
 from .policy.register import registry as policy_registry
 from .value_function.register import registry as value_function_registry
 from itertools import combinations
@@ -11,8 +10,7 @@ import logging
 
 
 class Agent:
-    def __init__(self, algo, policy, value_function):
-        self.algo = algo_registry[algo['name']](**algo['kwargs'])
+    def __init__(self, policy, value_function):
         self.policy = policy_registry[policy['name']](**policy['kwargs'])
         self.value_function = [value_function_registry[value_function['name0']](**value_function['kwargs0']),
                                value_function_registry[value_function['name1']](**value_function['kwargs1'])]
@@ -52,13 +50,14 @@ class Agent:
         self._reset_current_data()
 
     def dump_data(self, root, agent_id):
-        path = os.path.join(root,
-                            str(agent_id)+ '_'+str(self.policy.custom_hash) + '_'
-                            + str(self.value_function[0].custom_hash) + '_'
-                            + str(self.value_function[1].custom_hash)
-                            + '.pickle')
+        path = os.path.join(root, str(agent_id)+'_'+self.hash()+'.pickle')
         self.logger.info('Agent '+str(agent_id)+' data saved to :'+path)
         pickle.dump(self.data, open(path, 'wb'))
+
+    def hash(self):
+        return '_'.join([str(self.policy.custom_hash),
+                         str(self.value_function[0].custom_hash),
+                         str(self.value_function[1].custom_hash)])
 
     @property
     def total_points(self):
