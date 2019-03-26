@@ -18,13 +18,9 @@ class FFW(ValueFunction):
             nn.Linear(106, 1),
             nn.ReLU(True),
         )
-
+        self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
         self.apply(self.weights_init)
 
     def forward(self, x):
         out = self.ffw(x)
         return out
-
-
-
-

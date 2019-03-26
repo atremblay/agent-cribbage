@@ -1,21 +1,63 @@
-from .algorithm.register import registry as algo_registry
 from .policy.register import registry as policy_registry
 from .value_function.register import registry as value_function_registry
-
 from itertools import combinations
 from gym_cribbage.envs.cribbage_env import Stack
 import numpy as np
 import copy
+import pickle
+import os
+import logging
 
 
 class Agent:
-    def __init__(self, algo, policy, value_function):
-        self.algo = algo_registry[algo['name']](**algo['kwargs'])
+    def __init__(self, policy, value_function):
         self.policy = policy_registry[policy['name']](**policy['kwargs'])
         self.value_function = [value_function_registry[value_function['name0']](**value_function['kwargs0']),
                                value_function_registry[value_function['name1']](**value_function['kwargs1'])]
         self.reward = []
         self.cards_2_drop_phase0 = []
+
+        self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}
+        self._reset_current_data()
+        self.logger = logging.getLogger(__name__)
+
+    def _reset_current_data(self):
+        self.current_data = [None, None]
+
+    def store_state(self, state):
+        if self.current_data[0] is not None:
+            raise ValueError('State cannot be overridden.')
+        self.current_data[0] = state
+
+    def store_reward(self, reward):
+        if self.current_data[1] is None:
+            self.current_data[1] = reward
+        else:
+            self.current_data[1] += reward
+
+        self.reward.append(reward)
+
+    def append_data(self, hand, phase, no_state=False):
+        if None in self.current_data and (no_state and self.current_data[1] is not None):
+            raise ValueError('Current data cannot be stored since state or reward is None: ' + str(self.current_data))
+
+        this_phase = self.data['data'][phase]
+        # Init dictionary for new hand
+        if hand not in this_phase:
+            this_phase[hand] = [self.current_data]
+        else:
+            this_phase[hand].append(self.current_data)
+        self._reset_current_data()
+
+    def dump_data(self, root, agent_id):
+        path = os.path.join(root, str(agent_id)+'_'+self.hash()+'.pickle')
+        self.logger.info('Agent '+str(agent_id)+' data saved to :'+path)
+        pickle.dump(self.data, open(path, 'wb'))
+
+    def hash(self):
+        return '_'.join([str(self.policy.custom_hash),
+                         str(self.value_function[0].custom_hash),
+                         str(self.value_function[1].custom_hash)])
 
     @property
     def total_points(self):
@@ -47,7 +89,9 @@ class Agent:
                                        for p in s_prime_combinations])
 
             # Choose cards to drop according to policy
-            idx_s_prime = self.policy.choose([S_prime_phase0], self.value_function[env.phase])
+            after_state = [S_prime_phase0]
+            self.store_state(after_state)  # Store state for data generation.
+            idx_s_prime = self.policy.choose(after_state, self.value_function[env.phase])
 
             # Remove cards that stay in hand
             self.cards_2_drop_phase0 = copy.deepcopy(state.hand)
@@ -68,7 +112,10 @@ class Agent:
             table_cards_repeated = np.repeat(table_cards, len(state.hand), axis=0)
             hand = np.append(table_cards_repeated, hand, axis=1)
 
-        idx_s_prime = self.policy.choose([hand, np.repeat(np.expand_dims(env.discarded.state, axis=0),
-                                                          len(state.hand), axis=0)], self.value_function[env.phase])
-        # idx_s_prime = policy_registry['Random']().choose(np.array([c.state for c in state.hand]), None)
+        # Store state for data generation.
+        after_state = [hand, np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0)]
+        self.store_state(after_state)
+
+        idx_s_prime = self.policy.choose(after_state, self.value_function[env.phase])
+
         return state.hand[idx_s_prime]

@@ -19,3 +19,7 @@ class Boltzmann(Policy):
         y = np.exp(x / self.tao)
         return y / y.sum(axis=axis, keepdims=True)
 
+    @property
+    def custom_hash(self):
+        return __name__+str(self.tao)
+

@@ -11,3 +11,7 @@ class Random(Policy):
 
     def choose(self, actions, value_function):
         return random.randint(0, len(actions)-1)
+
+    @property
+    def custom_hash(self):
+        return __name__+str(self.epsilon)

@@ -20,8 +20,11 @@ class LSTM(ValueFunction):
             nn.Linear(52, 1),
             nn.ReLU(True),
         )
-
+        # Before applying weights
+        self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
         self.apply(self.weights_init)
+
+
 
     def forward(self, x, discarded):
 
@@ -29,6 +32,7 @@ class LSTM(ValueFunction):
         out = out[:, -1, :]  # Only keeps last value of sequence
         out = self.clf(torch.cat((out, discarded), dim=1))
         return out
+
 
 
 
