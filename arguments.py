@@ -12,8 +12,6 @@ from logger_toolbox import setup_logging
 class Args:
 
     def __init__(self):
-        # Register instance class logger
-        self.logger = logging.getLogger(__name__)
 
         self.parser = argparse.ArgumentParser()
         # Add arguments
@@ -21,11 +19,8 @@ class Args:
         self.parser.add_argument('policy', choices=['Boltzmann', 'EpsilonGreedy', 'Random'])
         self.parser.add_argument('value_function0', choices=['FFW'])
         self.parser.add_argument('value_function1', choices=['LSTM', 'FFW'])
-        self.parser.add_argument('--cuda', default=False, action='store_true')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
-        self.parser.add_argument('--opt', type=str, default='sgd', choices=('sgd', 'adam', 'rmsprop'))
-        self.parser.add_argument("--lr", default=1e-3, type=float)
         self.parser.add_argument("--tao", default=1, type=float)
         self.parser.add_argument("--epsilon", default=1e-3, type=float)
         self.parser.add_argument("--number_player", default=2, type=int)

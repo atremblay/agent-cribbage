@@ -2,6 +2,7 @@ import gym
 import gym_cribbage
 from agent.agent import Agent
 import arguments
+import logging
 
 
 def agents_init(args):
@@ -28,10 +29,43 @@ def agents_init(args):
     return agents
 
 
+def append_data(agents, env, state, hand):
+    """
+    Append data to the buffer contextually to the phase
+
+    :param agents:
+    :param env:
+    :return:
+    """
+    # At the end of phase 0, append data to buffer
+    if env.prev_phase == 0 and env.phase == 1:
+        for agent in agents:
+            agent.append_data(hand, 0)
+    elif env.phase != 0:
+        agents[state.reward_id].append_data(hand, env.prev_phase)
+    elif env.prev_phase == 2 and env.phase == 2:
+        agents[state.reward_id].append_data(hand, env.prev_phase, no_state=True)
+
+
+def dump_data(agents, winner, args):
+    """
+    Dump data in pickle at the end of the game.
+    Each agent has a pickle.
+
+    :param agents:
+    :param winner:
+    :return:
+    """
+    agents[winner].data['winner'] = 1  # Store winner
+    for agent_id, agent in enumerate(agents):
+        agent.dump_data(args['save'], agent_id)
+
+
 if __name__ == "__main__":
 
     args = arguments.Args()
     args.save()
+    logger = logging.getLogger(__name__)
 
     env = gym.make('cribbage-v0')
 
@@ -40,31 +74,34 @@ if __name__ == "__main__":
     while winner is None:
 
         state, reward, done, debug = env.reset(dealer)
-        hand += 1
-        args.logger.info('Hand:' + str(hand))
+        logger.info('Hand:' + str(hand))
 
         while not done:
 
-            args.logger.info('\tCrib: ' + str(env.crib) + ' - Table_Count: '+str(env.table_value))
+            logger.info('\tCrib: ' + str(env.crib) + ' - Table_Count: '+str(env.table_value))
             if env.phase < 2:
                 card = agents[env.player].choose(state, env)
-                args.logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
-                                 ' chooses from: ' + str(state.hand) + ' -> ' + str(card))
+                logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
+                            ' chooses from: ' + str(state.hand) + ' -> ' + str(card))
                 state, reward, done, debug = env.step(card)
 
             else:
                 state, reward, done, debug = env.step([])
 
-            args.logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.last_player) +
-                             ' gets reward: ' + str(reward))
+            logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(state.reward_id) +
+                        ' gets reward: ' + str(reward))
 
-            agents[env.last_player].reward.append(reward)
+            agents[state.reward_id].store_reward(reward)
+            append_data(agents, env, state, hand)
 
-            if agents[env.last_player].total_points >= 121:
-                winner = env.last_player
+            # Check if current reward has determine a winner
+            if agents[state.reward_id].total_points >= 121:
+                winner = state.reward_id
                 done = True
 
         # Change dealer
         dealer = env.next_player(env.dealer)
+        hand += 1
 
-    args.logger.info('winner:' + str(winner))
+    logger.info('winner:' + str(winner))
+    dump_data(agents, winner, args)
