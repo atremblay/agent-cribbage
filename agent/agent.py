@@ -7,19 +7,23 @@ import copy
 import pickle
 import os
 import logging
+import copy
 
 
 class Agent:
-    def __init__(self, policy, value_function):
+    def __init__(self, policy, value_function, number_games=1):
         self.policy = policy_registry[policy['name']](**policy['kwargs'])
         self.value_function = [value_function_registry[value_function['name0']](**value_function['kwargs0']),
                                value_function_registry[value_function['name1']](**value_function['kwargs1'])]
         self.reward = []
         self.cards_2_drop_phase0 = []
 
-        self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}
+        self.data = [copy.deepcopy({'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}) for ii in range(number_games)]
         self._reset_current_data()
         self.logger = logging.getLogger(__name__)
+
+    def reset(self):
+        self.reward = []
 
     def _reset_current_data(self):
         self.current_data = [None, None]
@@ -37,11 +41,11 @@ class Agent:
 
         self.reward.append(reward)
 
-    def append_data(self, hand, phase, no_state=False):
+    def append_data(self, game, hand, phase, no_state=False):
         if None in self.current_data and (no_state and self.current_data[1] is not None):
             raise ValueError('Current data cannot be stored since state or reward is None: ' + str(self.current_data))
 
-        this_phase = self.data['data'][phase]
+        this_phase = self.data[game]['data'][phase]
         # Init dictionary for new hand
         if hand not in this_phase:
             this_phase[hand] = [self.current_data]

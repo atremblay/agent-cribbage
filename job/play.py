@@ -15,47 +15,53 @@ class Play(Job):
     def add_argument(self):
         # Add arguments
         self.parser.add_argument("--number_player", default=2, type=int)
+        self.parser.add_argument("--number_games", default=1, type=int)
 
     def job(self):
 
-        env = gym.make('cribbage-v0')
-
         agents = self.agents_init()
-        winner, hand, dealer = None, 0, None
-        while winner is None:
 
-            state, reward, done, debug = env.reset(dealer)
-            self.logger.info('Hand:' + str(hand))
+        for game in range(self['number_games']):
 
-            while not done:
+            self.agents_reset(agents)
+            env = gym.make('cribbage-v0')
+            winner, hand, dealer = None, 0, None
 
-                self.logger.info('\tCrib: ' + str(env.crib) + ' - Table_Count: ' + str(env.table_value))
-                if env.phase < 2:
-                    card = agents[env.player].choose(state, env)
-                    self.logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
-                                     ' chooses from: ' + str(state.hand) + ' -> ' + str(card))
-                    state, reward, done, debug = env.step(card)
+            while winner is None:
 
-                else:
-                    state, reward, done, debug = env.step([])
+                state, reward, done, debug = env.reset(dealer)
+                self.logger.debug('Hand:' + str(hand))
 
-                self.logger.info('\t\tPhase: ' + str(env.phase) + ' Player:' + str(state.reward_id) +
-                                 ' gets reward: ' + str(reward))
+                while not done:
 
-                agents[state.reward_id].store_reward(reward)
-                self.append_data(agents, env, state, hand)
+                    self.logger.debug('\tCrib: ' + str(env.crib) + ' - Table_Count: ' + str(env.table_value))
+                    if env.phase < 2:
+                        card = agents[env.player].choose(state, env)
+                        self.logger.debug('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
+                                          ' chooses from: ' + str(state.hand) + ' -> ' + str(card))
+                        state, reward, done, debug = env.step(card)
 
-                # Check if current reward has determine a winner
-                if agents[state.reward_id].total_points >= 121:
-                    winner = state.reward_id
-                    done = True
+                    else:
+                        state, reward, done, debug = env.step([])
 
-            # Change dealer
-            dealer = env.next_player(env.dealer)
-            hand += 1
+                    self.logger.debug('\t\tPhase: ' + str(env.phase) + ' Player:' + str(state.reward_id) +
+                                      ' gets reward: ' + str(reward))
 
-        self.logger.info('winner:' + str(winner))
-        self.dump_data(agents, winner)
+                    agents[state.reward_id].store_reward(reward)
+                    self.append_data(agents, env, state, hand, game)
+
+                    # Check if current reward has determine a winner
+                    if agents[state.reward_id].total_points >= 121:
+                        winner = state.reward_id
+                        done = True
+
+                # Change dealer
+                dealer = env.next_player(env.dealer)
+                hand += 1
+
+            agents[winner].data[game]['winner'] = 1  # Store winner
+            self.logger.debug('winner:' + str(winner))
+        self.dump_data(agents)
 
     def agents_init(self):
         """ Initialize agents
@@ -65,16 +71,20 @@ class Play(Job):
         """
         agents = []
         agent_args = self.template_agent_args()
-        agent = Agent(*agent_args)
+        agent = Agent(*agent_args, number_games=self['number_games'])
 
         agents.append(agent)
         for i in range(1, self['number_player']):
-            agents.append(Agent(*agent_args))
+            agents.append(Agent(*agent_args, number_games=self['number_games']))
             agents[i].value_function = agent.value_function  # All agents point to the same value function
 
         return agents
 
-    def append_data(self, agents, env, state, hand):
+    def agents_reset(self, agents):
+        for agent in agents:
+            agent.reset()
+
+    def append_data(self, agents, env, state, hand, game):
         """
         Append data to the buffer contextually to the phase
 
@@ -85,21 +95,19 @@ class Play(Job):
         # At the end of phase 0, append data to buffer
         if env.prev_phase == 0 and env.phase == 1:
             for agent in agents:
-                agent.append_data(hand, 0)
+                agent.append_data(game, hand, 0)
         elif env.phase != 0:
-            agents[state.reward_id].append_data(hand, env.prev_phase)
+            agents[state.reward_id].append_data(game, hand, env.prev_phase)
         elif env.prev_phase == 2 and env.phase == 2:
-            agents[state.reward_id].append_data(hand, env.prev_phase, no_state=True)
+            agents[state.reward_id].append_data(game, hand, env.prev_phase, no_state=True)
 
-    def dump_data(self, agents, winner):
+    def dump_data(self, agents):
         """
         Dump data in pickle at the end of the game.
         Each agent has a pickle.
 
         :param agents:
-        :param winner:
         :return:
         """
-        agents[winner].data['winner'] = 1  # Store winner
         for agent_id, agent in enumerate(agents):
             agent.dump_data(self['save'], agent_id)
