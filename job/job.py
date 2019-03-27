@@ -17,6 +17,7 @@ class Job:
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--tao", default=1, type=float)
         self.parser.add_argument("--epsilon", default=1e-3, type=float)
+        self.parser.add_argument("--number_games", default=1, type=int)
 
     def setup_logging(self, name):
         self.args = self.parser.parse_args()

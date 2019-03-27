@@ -6,6 +6,8 @@ from .register import register
 import os
 from agent.agent import Agent
 import pickle
+from .play import Play
+
 
 @register
 class Train(Job):
@@ -23,6 +25,7 @@ class Train(Job):
         self.parser.add_argument('--opt', type=str, default='sgd', choices=('sgd', 'adam', 'rmsprop'))
         self.parser.add_argument("--lr", default=1e-3, type=float)
         self.parser.add_argument("--data_dir", default=None)
+        self.parser.add_argument("--epochs", default=5, type=int)
 
     def get_algo_args(self):
         if self.args.algo == 'QLearning':
@@ -70,6 +73,13 @@ class Train(Job):
     def job(self):
         agent_args = self.template_agent_args()
         agent = Agent(*agent_args)
-        data_files = list(self.get_data_files(agent.hash()+'.pickle'))
-        test_data = pickle.load(open(data_files[0], 'rb'))
-        a=1
+
+        for epochs in range(self['epochs']):
+            data_files = Play(agent=agent).job()
+            for data_file in data_files:
+                self.train(data_file)
+
+    def train(self, data_file):
+        test_data = pickle.load(open(data_file, 'rb'))
+        self.agent.model.train(True)
+        return

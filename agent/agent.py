@@ -11,14 +11,14 @@ import copy
 
 
 class Agent:
-    def __init__(self, policy, value_function, number_games=1):
+    def __init__(self, policy, value_function):
         self.policy = policy_registry[policy['name']](**policy['kwargs'])
         self.value_function = [value_function_registry[value_function['name0']](**value_function['kwargs0']),
                                value_function_registry[value_function['name1']](**value_function['kwargs1'])]
         self.reward = []
         self.cards_2_drop_phase0 = []
 
-        self.data = [copy.deepcopy({'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}) for ii in range(number_games)]
+        self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}
         self._reset_current_data()
         self.logger = logging.getLogger(__name__)
 
@@ -41,11 +41,11 @@ class Agent:
 
         self.reward.append(reward)
 
-    def append_data(self, game, hand, phase, no_state=False):
+    def append_data(self, hand, phase, no_state=False):
         if None in self.current_data and (no_state and self.current_data[1] is not None):
             raise ValueError('Current data cannot be stored since state or reward is None: ' + str(self.current_data))
 
-        this_phase = self.data[game]['data'][phase]
+        this_phase = self.data['data'][phase]
         # Init dictionary for new hand
         if hand not in this_phase:
             this_phase[hand] = [self.current_data]
@@ -54,9 +54,10 @@ class Agent:
         self._reset_current_data()
 
     def dump_data(self, root, agent_id):
-        path = os.path.join(root, str(agent_id)+'_'+self.hash()+'.pickle')
-        self.logger.info('Agent '+str(agent_id)+' data saved to :'+path)
+        path = os.path.join(root, agent_id+'_'+self.hash()+'.pickle')
+        self.logger.info('Agent '+agent_id+' data saved to :'+path)
         pickle.dump(self.data, open(path, 'wb'))
+        return path
 
     def hash(self):
         return '_'.join([str(self.policy.custom_hash),
