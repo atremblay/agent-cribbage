@@ -14,6 +14,7 @@ class Agent:
 
         self.policies = [policy_registry[p['class']](**p['kwargs']) for p in policies]
         self.value_functions = [value_function_registry[v['class']](**v['kwargs']) for v in value_functions]
+        self.choose_phase = [getattr(self, p['callback']) for p in policies]
 
         self.reward = []
         self.cards_2_drop_phase0 = []
@@ -71,9 +72,7 @@ class Agent:
 
     def choose(self, state, env):
 
-        choose_phase = [self.choose_phase0, self.choose_phase1]
-
-        return choose_phase[env.phase](state, env)
+        return self.choose_phase[env.phase](state, env)
 
     def choose_phase0(self, state, env):
         """
