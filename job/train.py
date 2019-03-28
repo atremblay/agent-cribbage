@@ -72,8 +72,10 @@ class Train(Job):
 
     def job(self):
 
+        game_offset = 0
         for epochs in range(self['epochs']):
-            data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job()
+            data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
+            game_offset += len(data_files)//len(self.agents)
             for data_file in data_files:
                 self.train(data_file)
 
