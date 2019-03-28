@@ -5,5 +5,9 @@ Agents:
         - {class: FFW, kwargs: {}}
         - {class: LSTM, kwargs: {}}
       policies:
-        - {class: EpsilonGreedy, kwargs: {epsilon: 0.1}, callback: choose_phase0}
-        - {class: EpsilonGreedy, kwargs: {epsilon: 0.1}, callback: choose_phase1}
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.1},
+           callback: {name: choose_phase0, kwargs: {}}}
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.1},
+           callback: {name: choose_phase1, kwargs: {}}}

@@ -41,10 +41,12 @@ class Play(Job):
                     else:
                         state, reward, done, debug = env.step([])
 
+
                     self.logger.debug('\t\tPhase: ' + str(env.phase) + ' Player:' + str(state.reward_id) +
                                       ' gets reward: ' + str(reward))
 
                     self.agents[state.reward_id].store_reward(reward)
+                    self.logger.human('Score:' + str([a.total_points for a in self.agents]))
                     self.append_data(self.agents, env, state, hand, game)
 
                   # Check if current reward has determine a winner
@@ -57,7 +59,7 @@ class Play(Job):
                 hand += 1
 
             self.agents[winner].data['winner'] = 1  # Store winner
-            self.logger.debug('winner:' + str(winner))
+            self.logger.human('winner:' + str(winner))
             games_data_files.extend(self.dump_data(self.agents, game_offset+game))
 
         return games_data_files
