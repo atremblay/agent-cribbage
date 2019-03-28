@@ -3,7 +3,6 @@ from .value_function.register import registry as value_function_registry
 from itertools import combinations
 from gym_cribbage.envs.cribbage_env import Stack
 import numpy as np
-import copy
 import pickle
 import os
 import logging
@@ -11,10 +10,11 @@ import copy
 
 
 class Agent:
-    def __init__(self, policy, value_function):
-        self.policy = policy_registry[policy['name']](**policy['kwargs'])
-        self.value_function = [value_function_registry[value_function['name0']](**value_function['kwargs0']),
-                               value_function_registry[value_function['name1']](**value_function['kwargs1'])]
+    def __init__(self, policies, value_functions):
+
+        self.policies = [policy_registry[p['class']](**p['kwargs']) for p in policies]
+        self.value_functions = [value_function_registry[v['class']](**v['kwargs']) for v in value_functions]
+
         self.reward = []
         self.cards_2_drop_phase0 = []
 
@@ -60,9 +60,10 @@ class Agent:
         return path
 
     def hash(self):
-        return '_'.join([str(self.policy.custom_hash),
-                         str(self.value_function[0].custom_hash),
-                         str(self.value_function[1].custom_hash)])
+        return '_'.join([str(self.policies[0].custom_hash),
+                         str(self.policies[1].custom_hash),
+                         str(self.value_functions[0].custom_hash),
+                         str(self.value_functions[1].custom_hash)])
 
     @property
     def total_points(self):
@@ -96,7 +97,7 @@ class Agent:
             # Choose cards to drop according to policy
             after_state = [S_prime_phase0]
             self.store_state(after_state)  # Store state for data generation.
-            idx_s_prime = self.policy.choose(after_state, self.value_function[env.phase])
+            idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
 
             # Remove cards that stay in hand
             self.cards_2_drop_phase0 = copy.deepcopy(state.hand)
@@ -121,6 +122,6 @@ class Agent:
         after_state = [hand, np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0)]
         self.store_state(after_state)
 
-        idx_s_prime = self.policy.choose(after_state, self.value_function[env.phase])
+        idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
 
         return state.hand[idx_s_prime]

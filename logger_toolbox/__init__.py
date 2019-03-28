@@ -50,13 +50,8 @@ def _prepend_pid_to_file_handler(config):
             fileExtension = os.path.splitext(fileName)[1]
 
             newFileName = 'pid{}_{}{}'.format(str(os.getpid()), fileNameWithoutExtension, fileExtension)
-            newFolderPath = os.path.join(folderPath, 'pid'+str(os.getpid()))
+            newFolderPath = folderPath
             newFilePath = os.path.join(newFolderPath, newFileName)
-
-            try:
-                os.makedirs(newFolderPath)
-            except FileExistsError: # Problem with race condition
-                pass
 
             assert not os.path.exists(newFilePath)
 

@@ -4,29 +4,45 @@ import os
 import getpass
 import sys
 import logging
+import yaml
+from agent.agent import Agent
+import copy
 
 
 class Job:
-    def __init__(self):
+    def __init__(self, agent=None):
+
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
-        self.parser.add_argument('policy', choices=['Boltzmann', 'EpsilonGreedy', 'Random'])
-        self.parser.add_argument('value_function0', choices=['FFW'])
-        self.parser.add_argument('value_function1', choices=['LSTM', 'FFW'])
+        self.parser.add_argument('--agent_yaml', type=str, default='./agent-cribbage/agents.yaml')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
-        self.parser.add_argument("--tao", default=1, type=float)
-        self.parser.add_argument("--epsilon", default=1e-3, type=float)
         self.parser.add_argument("--number_games", default=1, type=int)
+        self.agents = agent
 
-    def setup_logging(self, name):
+    def _setup_job(self, name, args, logger):
+        if args is None:
+            self.add_argument()  # Mandatory method in subclass
+            self._setup_args(name)
+        else:
+            self.args = args
+
+        if logger is None:
+            self._setup_logging(name)
+        else:
+            self.logger = logger
+
+    def _setup_args(self, name):
         self.args = self.parser.parse_args()
         self.args.save = os.path.join(self.args.save, getpass.getuser(), 'agent-cribbage', name)
-        setup_logging(self.args.save)
-        self.logger = logging.getLogger(name)
         # Append process Id that was created by logging
         self.args.save = os.path.join(self.args.save, 'pid' + str(os.getpid()))
         self.save_args()
+
+    def _setup_logging(self, name):
+        setup_logging(self.args.save, configFilePath='./agent-cribbage/logger_toolbox/logging.yaml')
+        self.logger = logging.getLogger(name)
+
 
     def __getitem__(self, item):
         return getattr(self.args, item)
@@ -35,29 +51,46 @@ class Job:
         return setattr(self.args, item, value)
 
     def save_args(self):
+        # Make directories
+        try:
+            os.makedirs(self.args.save)
+        except FileExistsError:  # Problem with race condition
+            pass
+
         with open(os.path.join(self.args.save, 'commandline_args.txt'), 'w') as f:
             f.write('\n'.join(sys.argv[1:]))
 
-    def template_agent_args(self):
-        return [{'name': self['policy'], 'kwargs': self.get_policy_args()},
-                {
-                  'name0': self['value_function0'], 'kwargs0': self.get_value_function_args()[0],
-                  'name1': self['value_function1'], 'kwargs1': self.get_value_function_args()[1]
-                }]
+    def init_agent(self):
+        """ Initialize agents
 
-    def get_policy_args(self):
-        if self.args.policy == 'Boltzmann':
-            return {'tao': self.args.tao}
-        elif self.args.policy == 'EpsilonGreedy':
-            return {'epsilon': self.args.epsilon}
-        elif self.args.policy == 'Random':
-            return {}
+        :return:
+        """
 
-    def get_value_function_args(self):
-        if self.args.value_function0 == 'FFW':
-            VF0 = {}
+        if self.agents is None:
+            # Parse agent yaml file
+            with open(self['agent_yaml'], 'rt') as file:
+                config = yaml.safe_load(file.read())
 
-        if self.args.value_function1 in ['LSTM', 'FFW']:
-            VF1 = {}
+            # Create all agents form config
+            self.agents = []
+            for shared_agent in config['Agents']:
+                agent = Agent(**shared_agent['kwargs'])
+                self.agents.extend(self.config_shared_agent(shared_agent['number'], agent))
 
-        return VF0, VF1
+        assert len(self.agents) == 2  # Environment does not support more than 2 players now
+
+
+    @staticmethod
+    def config_shared_agent(number_of_shared_agent, agent):
+        """ Configure multiple agent that share the same value function pointer
+
+        :param number_of_shared_agent:
+        :param agent:
+        :return:
+        """
+        agents = [agent]
+        for i_agent in range(1, number_of_shared_agent):
+            agents.append(copy.deepcopy(agent))
+            agents[-1].value_functions = agent.value_functions  # share the same value function
+
+        return agents

@@ -13,8 +13,8 @@ from .play import Play
 class Train(Job):
     def __init__(self):
         super().__init__()
-        self.add_argument()
-        super().setup_logging(__name__)
+        super()._setup_job(__name__, None, None)
+        self.init_agent()
         if self['data_dir'] is None:
             self['data_dir'] = '/'+os.path.join(*self['save'].split(os.path.sep)[:-2], 'job.play')
 
@@ -71,15 +71,13 @@ class Train(Job):
                     yield os.path.join(root, file)
 
     def job(self):
-        agent_args = self.template_agent_args()
-        agent = Agent(*agent_args)
 
         for epochs in range(self['epochs']):
-            data_files = Play(agent=agent).job()
+            data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job()
             for data_file in data_files:
                 self.train(data_file)
 
     def train(self, data_file):
         test_data = pickle.load(open(data_file, 'rb'))
-        self.agent.model.train(True)
+        self.agents[0].value_functions[0].train(True)
         return

@@ -1,0 +1,9 @@
+Agents:
+  - number: 2
+    kwargs:
+      value_functions:
+        - {class: FFW, kwargs: {}}
+        - {class: LSTM, kwargs: {}}
+      policies:
+        - {class: EpsilonGreedy, kwargs: {epsilon: 0.1}, callback: choose_phase0}
+        - {class: EpsilonGreedy, kwargs: {epsilon: 0.1}, callback: choose_phase1}
