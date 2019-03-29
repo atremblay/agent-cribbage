@@ -23,6 +23,7 @@ class Agent:
 
         self.reward = []
         self.cards_2_drop_phase0 = []
+        self.statistics = {'game_won': 0}
 
         self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}
         self._reset_current_data()

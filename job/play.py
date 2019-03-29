@@ -58,9 +58,11 @@ class Play(Job):
                 hand += 1
 
             self.agents[winner].data['winner'] = 1  # Store winner
+            self.agents[winner].statistics['game_won'] += 1
             self.logger.debug('winner:' + str(winner))
             games_data_files.extend(self.dump_data(self.agents, game_offset+game))
 
+        print(self.agents[0].statistics['game_won'])
         return games_data_files
 
     def agents_reset(self, agents):
