@@ -16,7 +16,6 @@ class Play(Job):
 
     def job(self, game_offset=0):
 
-        winner0=0
         games_data_files = []
         for game in range(self['number_games']):
 
@@ -52,8 +51,6 @@ class Play(Job):
                   # Check if current reward has determine a winner
                     if self.agents[state.reward_id].total_points >= 121:
                         winner = state.reward_id
-                        if winner == 0:
-                            winner0 +=1
                         done = True
 
                 # Change dealer
@@ -61,8 +58,7 @@ class Play(Job):
                 hand += 1
 
             self.agents[winner].data['winner'] = 1  # Store winner
-            print(winner0)
-            self.logger.info('winner:' + str(winner))
+            self.logger.debug('winner:' + str(winner))
             games_data_files.extend(self.dump_data(self.agents, game_offset+game))
 
         return games_data_files
