@@ -13,7 +13,7 @@ class Train(Job):
     def __init__(self):
         super().__init__()
         super()._setup_job(__name__, None, None)
-        self.init_agent()
+
         if self['data_dir'] is None:
             self['data_dir'] = '/'+os.path.join(*self['save'].split(os.path.sep)[:-2], 'job.play')
 
@@ -36,6 +36,7 @@ class Train(Job):
 
         game_offset = 0
         self.resolve_cuda()
+        self.agents[0].init_optimizer()
         for epoch in range(self['epochs']):
             data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
             game_offset += len(data_files)//len(self.agents)
@@ -46,11 +47,10 @@ class Train(Job):
     def train(self, data_files, epoch):
         agent = self.agents[0]
         dataset = algorithm_registry[agent.algorithms[0]['class']](data_files, **agent.algorithms[0]['kwargs'])
-        dataloader = DataLoader(dataset, batch_size=4, shuffle=True, num_workers=4)
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
         agent.value_functions[0].train(True)
         MSE = nn.MSELoss()
         nProcessed = 0
-        agent.init_optimizer()
 
         for batch_idx, (inp, reward) in enumerate(dataloader):
 

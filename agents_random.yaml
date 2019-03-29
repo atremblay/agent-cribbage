@@ -1,6 +1,6 @@
 Agents:
   - number: 1
-    file:
+    file: './backup.tar'
     kwargs:
       value_functions:
         - {class: FFW, kwargs: {}}

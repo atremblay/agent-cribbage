@@ -30,12 +30,13 @@ class Job:
         else:
             self.args = args
 
-        self.resolve_cuda()
-
         if logger is None:
             self._setup_logging(name)
         else:
             self.logger = logger
+
+        self.init_agent()
+        self.resolve_cuda()
 
     def _setup_args(self, name):
         self.args = self.parser.parse_args()

@@ -9,7 +9,6 @@ class Play(Job):
     def __init__(self, agent=None, args=None, logger=None):
         super().__init__(agent)
         super()._setup_job(__name__, args, logger)
-        self.init_agent()
 
     def add_argument(self):
         # Add arguments
@@ -17,6 +16,7 @@ class Play(Job):
 
     def job(self, game_offset=0):
 
+        winner0=0
         games_data_files = []
         for game in range(self['number_games']):
 
@@ -52,6 +52,8 @@ class Play(Job):
                   # Check if current reward has determine a winner
                     if self.agents[state.reward_id].total_points >= 121:
                         winner = state.reward_id
+                        if winner == 0:
+                            winner0 +=1
                         done = True
 
                 # Change dealer
@@ -59,7 +61,8 @@ class Play(Job):
                 hand += 1
 
             self.agents[winner].data['winner'] = 1  # Store winner
-            self.logger.human('winner:' + str(winner))
+            print(winner0)
+            self.logger.info('winner:' + str(winner))
             games_data_files.extend(self.dump_data(self.agents, game_offset+game))
 
         return games_data_files

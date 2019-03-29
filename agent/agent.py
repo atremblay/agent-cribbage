@@ -62,8 +62,9 @@ class Agent:
 
     def dump_data(self, root, agent_id):
         path = os.path.join(root, agent_id+'_'+self.hash()+'.pickle')
-        self.logger.info('Agent '+agent_id+' data saved to :'+path)
+        self.logger.debug('Agent '+agent_id+' data saved to :'+path)
         pickle.dump(self.data, open(path, 'wb'))
+        self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}} # Reset data
         return path
 
     def hash(self):
