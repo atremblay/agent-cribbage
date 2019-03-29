@@ -13,7 +13,21 @@ from itertools import combinations
 import numpy as np
 import torch
 import tqdm
-import matplotlib.pyplot as plt
+from functools import reduce
+
+
+def summary(model):
+    print(model)
+    trainable_params = 0
+    non_trainable_params = 0
+    for p in model.parameters():
+        num_params = reduce(lambda x, y: x * y, p.shape)
+        if p.requires_grad:
+            trainable_params += num_params
+        else:
+            non_trainable_params += num_params
+    print("{} trainable parameters".format(trainable_params))
+    print("{} non trainable parameters".format(non_trainable_params))
 
 
 def deal_hand(deck, num_cards=6):
@@ -54,41 +68,28 @@ print(f"Mean value of {base_hand}  {base_value:.5f}")
 # Full procedure #
 ##################
 BATCH_SIZE = 32
-NUM_BATCHES = 1000
+NUM_BATCHES = 100
 SAMPLES = BATCH_SIZE * NUM_BATCHES
 i = 0
-running_loss = 0
 value_function = Conv()
-print(value_function)
-value_function.eval()
+summary(value_function)
 
 correct_choice = np.empty(SAMPLES, dtype=np.int32)
 sanity_checks = []
 train_ranks = np.empty((SAMPLES, 10), dtype=np.float32)
 train_tarot = np.empty((SAMPLES, 4, 13, 4), dtype=np.float32)
 target = np.empty(SAMPLES)
-pbar = tqdm.tqdm(total=NUM_BATCHES)
+# pbar = tqdm.tqdm(total=NUM_BATCHES)
 # Alternate phase of exploring environment and training
-for training_session in range(NUM_BATCHES):
+for training_session in tqdm.trange(NUM_BATCHES):
     # Need to turn the model into evaluation mode to score each combinations
     value_function.eval()
 
     for episode in range(BATCH_SIZE):
         # Shuffle the deck
         deck = Deck()
-        # hand = deal_hand(deck)
-        hand = Stack.from_stack(base_hand)
-        while True:
-            card = deck.deal()
-            if card in hand:
-                continue
-            hand.add_(card)
-            if len(hand) == 6:
-                break
-        while True:
-            starter = deck.deal()
-            if starter not in hand:
-                break
+        hand = deal_hand(deck)
+        starter = deck.deal()
 
         card_combinations = [list(c) for c in combinations(hand.cards, 4)]
         as_stacks = [Stack(c) for c in card_combinations]
@@ -100,7 +101,6 @@ for training_session in range(NUM_BATCHES):
         max_score = combinations_scores.max()
         best_score_idx = np.where(combinations_scores == max_score)[0]
 
-        dealer = episode % 2
         # Run all combinations through the model to get values
         ranks, tarot = Conv.stack_to_tensor(as_stacks)
 
@@ -110,7 +110,7 @@ for training_session in range(NUM_BATCHES):
         # Turn the output into probabilities
         probs = np.exp(outputs) / np.exp(outputs).sum()
         # Sample from probs
-        idx = np.random.choice(np.arange(0, len(probs)), p=probs)
+        idx = np.random.choice(np.arange(len(probs)), p=probs)
 
         train_ranks[i] = ranks[idx]
         train_tarot[i] = tarot[idx]
@@ -118,12 +118,9 @@ for training_session in range(NUM_BATCHES):
         correct_choice[i] = idx in best_score_idx
         i += 1
 
-    # if i < 128:
-    #     continue
     ##################
     # Train sequence #
     ##################
-    value_function.train(True)
 
     optimizer = torch.optim.SGD(
         value_function.parameters(),
@@ -132,36 +129,39 @@ for training_session in range(NUM_BATCHES):
     )
     criterion = torch.nn.MSELoss()
 
-
     # After BATCH_SIZE episodes, train on the whole dataset
-    value_function.train(True)
-    outputs = value_function(
-        torch.tensor(train_ranks[i - BATCH_SIZE: i]),
-        torch.tensor(train_tarot[i - BATCH_SIZE: i])
-    )
-    optimizer.zero_grad()
-    loss = criterion(outputs, torch.tensor(target[i - BATCH_SIZE: i]).float())
-    loss.backward()
-    # Calculate the loss
-    running_loss += loss.item()
-    optimizer.step()
-
-    value_function.eval()
-    sanity_check = value_function(base_hand_ranks, base_hand_tarot).item()
-    sanity_checks.append(sanity_check)
-
-    correct_choice = np.array(correct_choice)
-
-    desc = "Loss {:.5f}, Sanity: {:.5f}, base value: {:.5f}, correct: {:.4f}"
-    pbar.update()
-    pbar.set_description(
-        desc.format(
-            running_loss / (training_session + 1),
-            sanity_check,
-            base_value,
-            correct_choice[i - 100:i].sum() / min(100, i)
+    running_loss = 0
+    train_bar = tqdm.tqdm(leave=True, total=i // BATCH_SIZE)
+    for j in range(i // BATCH_SIZE):
+        value_function.train(True)
+        outputs = value_function(
+            torch.tensor(train_ranks[j * BATCH_SIZE: (j + 1) * BATCH_SIZE]),
+            torch.tensor(train_tarot[j * BATCH_SIZE: (j + 1) * BATCH_SIZE])
         )
-    )
+        optimizer.zero_grad()
+        loss = criterion(outputs, torch.tensor(target[j * BATCH_SIZE: (j + 1) * BATCH_SIZE]).float())
+        loss.backward()
+        # Calculate the loss
+        running_loss += loss.item()
+        optimizer.step()
+
+        value_function.eval()
+        sanity_check = value_function(base_hand_ranks, base_hand_tarot).item()
+        sanity_checks.append(sanity_check)
+
+        correct_choice = np.array(correct_choice)
+
+        desc = "Loss {:.5f}, Sanity: {:.5f}, base value: {:.5f}"
+        train_bar.update()
+        train_bar.set_description(
+            desc.format(
+                running_loss / (j + 1),
+                sanity_check,
+                base_value,
+                # correct_choice[i - 100:i].sum() / min(100, i)
+            )
+        )
+    train_bar.close()
 
 torch.save(
     value_function.state_dict(),

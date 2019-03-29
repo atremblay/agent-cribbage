@@ -18,7 +18,7 @@ class Conv(ValueFunction):
         self.tarot = nn.Sequential(
             nn.Conv2d(
                 in_channels=4,
-                out_channels=150,
+                out_channels=15,
                 kernel_size=4,
                 stride=1
             ),
@@ -28,7 +28,7 @@ class Conv(ValueFunction):
         # Logistic Regression
         self.clf = nn.Sequential(
             nn.Linear(
-                1 * 150 * 10 + 10,
+                1 * 15 * 10 + 10,
                 100
             ),
             nn.Tanh(),
