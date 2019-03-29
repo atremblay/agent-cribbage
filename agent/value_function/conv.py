@@ -5,6 +5,7 @@ import torch
 from pathlib import Path
 import os
 import numpy as np
+from gym_cribbage.envs.cribbage_env import Stack, RANKS, SUITS
 
 
 @register
@@ -14,45 +15,51 @@ class Conv(ValueFunction):
         """
         super().__init__()
 
-        self.suit = nn.Conv1d(
-            in_channels=4,
-            out_channels=3,
-            kernel_size=1,
-            stride=1
-        )
-
-        self.rank2 = nn.Conv2d(
-            in_channels=1,
-            out_channels=3,
-            kernel_size=2,
-            stride=1
-        )
-
-        self.rank3 = nn.Conv2d(
-            in_channels=1,
-            out_channels=3,
-            kernel_size=3,
-            stride=1
+        self.tarot = nn.Sequential(
+            nn.Conv2d(
+                in_channels=4,
+                out_channels=150,
+                kernel_size=4,
+                stride=1
+            ),
+            nn.ReLU()
         )
 
         # Logistic Regression
-        self.clf = nn.Linear(
-            12 * 3 * 3 + 11 * 2 * 3 + 4 * 3,
-            1
+        self.clf = nn.Sequential(
+            nn.Linear(
+                1 * 150 * 10 + 10,
+                100
+            ),
+            nn.Tanh(),
+            nn.Linear(100, 1)
         )
 
         self.apply(self.weights_init)
 
-    def forward(self, x_rank, x_suit):
-        suit = self.suit(x_suit)
-        rank2 = self.rank2(x_rank)
-        rank3 = self.rank3(x_rank)
+    @staticmethod
+    def stack_to_tensor(stacks):
+        if isinstance(stacks, Stack):
+            stacks = [stacks]
+        batch_size = len(stacks)
+        ranks = np.zeros((batch_size, 10), dtype=np.float32)
+        tarot = np.zeros((batch_size, 4, 13, 4), dtype=np.float32)
+        for i, stack in enumerate(stacks):
+            for j, card in enumerate(sorted(stack)):
+                rank, suit = RANKS.index(card.rank), SUITS.index(card.suit)
+                tarot[i, suit, rank, j] = 1
+                ranks[i, card.value - 1] += 1
+        tarot = torch.tensor(tarot)
+        ranks = torch.tensor(ranks)
+        return ranks, tarot
+
+    def forward(self, x_rank, x_tarot):
+        tarot = self.tarot(x_tarot)
 
         cat = torch.cat(
             [
-                rank2.flatten(start_dim=1),
-                rank3.flatten(start_dim=1),
-                suit.flatten(start_dim=1)
+                tarot.flatten(start_dim=1),
+                x_rank
             ],
             dim=1
         )
@@ -96,10 +103,6 @@ class ConvEval:
         if len(stack) != 4:
             raise Exception("Expecting the stack to have 4 cards")
 
-        ranks = np.zeros((1, 1, 13, 4), dtype=np.float32)
-        suits = np.zeros((1, 4, 4), dtype=np.float32)
-        s, r = stack.compact_state
-        ranks[0, 0] = r
-        suits[0] = s
+        ranks, tarot = Conv.stack_to_tensor(stack)
 
-        return self.model(torch.tensor(ranks), torch.tensor(suits))
+        return self.model(torch.tensor(ranks), torch.tensor(tarot))
