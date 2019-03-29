@@ -57,7 +57,7 @@ class Train(Job):
             inp, reward = device(inp), device(reward)
             output = agent.value_functions[0](inp)
             agent.optimizers[0].zero_grad()
-            loss = MSE(output, reward-output.flatten())
+            loss = MSE(output, reward)
             loss.backward()
             agent.optimizers[0].step()
 
