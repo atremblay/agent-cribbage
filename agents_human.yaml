@@ -1,9 +1,14 @@
 Agents:
   - number: 1
+    file:
     kwargs:
       value_functions:
         - {class: FFW, kwargs: {}}
         - {class: LSTM, kwargs: {}}
+      optimizers:
+        - {class: Adam, kwargs: {}}
+        - {class: Adam, kwargs: {}}
+      algorithms:
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.1},
@@ -12,8 +17,11 @@ Agents:
            kwargs: {epsilon: 0.1},
            callback: {name: choose_phase1, kwargs:{}}}
   - number: 1
+    file:
     kwargs:
       value_functions: []
+      optimizers:
+      algorithms:
       policies:
         - {class: Human,
            kwargs: {},

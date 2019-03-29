@@ -7,13 +7,17 @@ import pickle
 import os
 import logging
 import copy
+import torch
 
 
 class Agent:
-    def __init__(self, policies, value_functions):
+    def __init__(self, policies, value_functions, optimizers, algorithms):
 
         self.policies = [policy_registry[p['class']](**p['kwargs']) for p in policies]
         self.value_functions = [value_function_registry[v['class']](**v['kwargs']) for v in value_functions]
+        self.algorithms = algorithms
+        self.optimizers_define = optimizers
+        self.optimizers = []
         self.choose_phase = [getattr(self, p['callback']['name']) for p in policies]
         self.choose_phase_kwargs = [p['callback']['kwargs'] for p in policies]
 
@@ -30,10 +34,10 @@ class Agent:
     def _reset_current_data(self):
         self.current_data = [None, None]
 
-    def store_state(self, state):
+    def store_state(self, state, idx_choice):
         if self.current_data[0] is not None:
             raise ValueError('State cannot be overridden.')
-        self.current_data[0] = state
+        self.current_data[0] = (state, idx_choice)
 
     def store_reward(self, reward):
         if self.current_data[1] is None:
@@ -43,12 +47,13 @@ class Agent:
 
         self.reward.append(reward)
 
-    def append_data(self, hand, phase, no_state=False):
+    def append_data(self, hand_no, phase, no_state=False):
         if None in self.current_data and (no_state and self.current_data[1] is not None):
             raise ValueError('Current data cannot be stored since state or reward is None: ' + str(self.current_data))
 
         this_phase = self.data['data'][phase]
         # Init dictionary for new hand
+        hand = 'hand-' + str(hand_no)
         if hand not in this_phase:
             this_phase[hand] = [self.current_data]
         else:
@@ -64,12 +69,38 @@ class Agent:
     def hash(self):
         return '_'.join([str(v.custom_hash) for v in self.policies]+[str(v.custom_hash) for v in self.value_functions])
 
+    def load_checkpoint(self, checkpoint_file):
+        checkpoint = torch.load(checkpoint_file)
+        self.init_optimizer()
+        for v, v_state, o, o_state in zip(self.value_functions, checkpoint['model_state_dict'],
+                                          self.optimizers, checkpoint['optimizer_state_dict']):
+            v.load_state_dict(v_state)
+            o.load_state_dict(o_state)
+
+        return checkpoint['epoch']
+
+    def save_checkpoint(self, checkpoint_file, epoch):
+        model_state_dict = []
+        optimizer_state_dict = []
+        for v, o in zip(self.value_functions, self.optimizers):
+            model_state_dict.append(v.state_dict())
+            optimizer_state_dict.append(o.state_dict())
+
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model_state_dict,
+            'optimizer_state_dict': optimizer_state_dict,
+        }, checkpoint_file)
+
     @property
     def total_points(self):
         return sum(self.reward)
 
-    def choose(self, state, env):
+    def init_optimizer(self):
+        for i, o in enumerate(self.optimizers_define):
+            self.optimizers.append(getattr(torch.optim, o['class'])(self.value_functions[i].parameters(), **o['kwargs']))
 
+    def choose(self, state, env):
         return self.choose_phase[env.phase](state, env, **self.choose_phase_kwargs[env.phase])
 
     def human_input(self, hand):
@@ -122,9 +153,10 @@ class Agent:
                                            for p in s_prime_combinations])
 
                 # Choose cards to drop according to policy
-                after_state = [S_prime_phase0]
-                self.store_state(after_state)  # Store state for data generation.
+                after_state = [S_prime_phase0.astype('float32')]
+                 # Store state for data generation.
                 idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
+                self.store_state(after_state, idx_s_prime)
 
                 # Remove cards that stay in hand
                 self.cards_2_drop_phase0 = copy.deepcopy(state.hand)
@@ -152,10 +184,11 @@ class Agent:
                 hand = np.append(table_cards_repeated, hand, axis=1)
 
             # Store state for data generation.
-            after_state = [hand, np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0)]
-            self.store_state(after_state)
+            after_state = [hand.astype('float32'),
+                           np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0).astype('float32')]
 
             idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
+            self.store_state(after_state, idx_s_prime)
 
             return state.hand[idx_s_prime]
 

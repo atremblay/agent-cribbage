@@ -1,9 +1,16 @@
 Agents:
   - number: 2
+    file:  './backup.tar'
     kwargs:
       value_functions:
         - {class: FFW, kwargs: {}}
         - {class: LSTM, kwargs: {}}
+      optimizers:
+        - {class: Adam, kwargs: {lr: 0.01}}
+        - {class: Adam, kwargs: {lr: 0.01}}
+      algorithms:
+        - {class: QLearningPhase0, kwargs: {}}
+        - {class: QLearningPhase0, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.1},

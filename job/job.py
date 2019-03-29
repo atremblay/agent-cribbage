@@ -7,6 +7,8 @@ import logging
 import yaml
 from agent.agent import Agent
 import copy
+from utils.device import device
+import torch
 
 
 class Job:
@@ -15,6 +17,7 @@ class Job:
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
         self.parser.add_argument('--agent_yaml', type=str, default='./agent-cribbage/agents.yaml')
+        self.parser.add_argument('--cuda', default=False, action='store_true')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
@@ -26,6 +29,8 @@ class Job:
             self._setup_args(name)
         else:
             self.args = args
+
+        self.resolve_cuda()
 
         if logger is None:
             self._setup_logging(name)
@@ -42,7 +47,6 @@ class Job:
     def _setup_logging(self, name):
         setup_logging(self.args.save, configFilePath='./agent-cribbage/logger_toolbox/logging.yaml')
         self.logger = logging.getLogger(name)
-
 
     def __getitem__(self, item):
         return getattr(self.args, item)
@@ -75,6 +79,9 @@ class Job:
             self.agents = []
             for shared_agent in config['Agents']:
                 agent = Agent(**shared_agent['kwargs'])
+
+                if shared_agent['file'] is not None:
+                    agent.load_checkpoint(shared_agent['file'])
                 self.agents.extend(self.config_shared_agent(shared_agent['number'], agent))
 
         assert len(self.agents) == 2  # Environment does not support more than 2 players now
@@ -94,3 +101,17 @@ class Job:
             agents[-1].value_functions = agent.value_functions  # share the same value function
 
         return agents
+
+    def resolve_cuda(self):
+
+        device.isCuda = self.args.cuda
+
+        if device.isCuda and not torch.cuda.is_available():
+            print("CUDA not available on your machine. Setting it back to False")
+            self.args.cuda = False
+            device.isCuda = False
+
+        if device.isCuda:
+            for a in self.agents:
+                for v in a.value_functions:
+                    v.cuda()

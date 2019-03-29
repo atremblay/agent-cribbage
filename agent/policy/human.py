@@ -2,6 +2,7 @@ from .policy import Policy
 from .register import register
 import logging
 
+
 @register
 class Human(Policy):
     def __init__(self):

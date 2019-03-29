@@ -1,12 +1,11 @@
 from .job import Job
-import torch
-import torch.optim as optim
 from utils.device import device
 from .register import register
 import os
-from agent.agent import Agent
-import pickle
 from .play import Play
+from algorithm.register import registry as algorithm_registry
+from torch import nn
+from torch.utils.data import DataLoader
 
 
 @register
@@ -20,49 +19,12 @@ class Train(Job):
 
     def add_argument(self):
         # Add arguments
-        self.parser.add_argument('algo', choices=['QLearning'])
-        self.parser.add_argument('--cuda', default=False, action='store_true')
-        self.parser.add_argument('--opt', type=str, default='sgd', choices=('sgd', 'adam', 'rmsprop'))
-        self.parser.add_argument("--lr", default=1e-3, type=float)
         self.parser.add_argument("--data_dir", default=None)
         self.parser.add_argument("--epochs", default=5, type=int)
 
-    def get_algo_args(self):
+    def init_algo(self):
         if self.args.algo == 'QLearning':
             return {}
-
-    def resolve_cuda(self, net):
-
-        device.isCuda = self.args.cuda
-
-        if device.isCuda and not torch.cuda.is_available():
-            print("CUDA not available on your machine. Setting it back to False")
-            self.args.cuda = False
-            device.isCuda = False
-
-        if device.isCuda:
-            net = net.cuda()
-
-        return net
-
-    def resolve_optimizer(self, net):
-
-        if self.args.opt == 'sgd':
-            optimizer = optim.SGD(
-                net.parameters(),
-                lr=self.args.lr,
-                momentum=0.9,
-                weight_decay=1e-4
-            )
-        elif self.args.opt == 'adam':
-            optimizer = optim.Adam(net.parameters(), weight_decay=1e-4, lr=self.args.lr)
-        elif self.args.opt == 'rmsprop':
-            optimizer = optim.RMSprop(net.parameters(), weight_decay=1e-4, lr=self.args.lr)
-        else:
-            self.parser.print_help()
-            raise ValueError('Invalid optimizer value fro argument --opt:' + self.args.opt)
-
-        return optimizer
 
     def get_data_files(self, agent_hash):
         for root, dirs, files in os.walk(self['data_dir']):
@@ -73,13 +35,39 @@ class Train(Job):
     def job(self):
 
         game_offset = 0
-        for epochs in range(self['epochs']):
+        self.resolve_cuda()
+        for epoch in range(self['epochs']):
             data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
             game_offset += len(data_files)//len(self.agents)
-            for data_file in data_files:
-                self.train(data_file)
+            self.train(data_files, epoch)
 
-    def train(self, data_file):
-        test_data = pickle.load(open(data_file, 'rb'))
-        self.agents[0].value_functions[0].train(True)
-        return
+        self.agents[0].save_checkpoint('./backup.tar', epoch)
+
+    def train(self, data_files, epoch):
+        agent = self.agents[0]
+        dataset = algorithm_registry[agent.algorithms[0]['class']](data_files, **agent.algorithms[0]['kwargs'])
+        dataloader = DataLoader(dataset, batch_size=4, shuffle=True, num_workers=4)
+        agent.value_functions[0].train(True)
+        MSE = nn.MSELoss()
+        nProcessed = 0
+        agent.init_optimizer()
+
+        for batch_idx, (inp, reward) in enumerate(dataloader):
+
+            inp, reward = device(inp), device(reward)
+            output = agent.value_functions[0](inp)
+            agent.optimizers[0].zero_grad()
+            loss = MSE(output, reward)
+            loss.backward()
+            agent.optimizers[0].step()
+
+            # Statistics
+            partialEpoch = epoch + batch_idx / len(dataloader)
+            nProcessed += len(inp)
+            self.logger.info(
+                'Epoch: {:.2f} [{}/{} ({:.0f}%)], Loss: {:.6f}, Device: {}'.format(
+                    partialEpoch, nProcessed, len(dataset), 100. * batch_idx / len(dataloader),
+                    loss.item(), device)
+            )
+
+

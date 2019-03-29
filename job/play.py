@@ -47,7 +47,7 @@ class Play(Job):
 
                     self.agents[state.reward_id].store_reward(reward)
                     self.logger.human('Score:' + str([a.total_points for a in self.agents]))
-                    self.append_data(self.agents, env, state, hand, game)
+                    self.append_data(self.agents, env, state, hand)
 
                   # Check if current reward has determine a winner
                     if self.agents[state.reward_id].total_points >= 121:
@@ -68,7 +68,7 @@ class Play(Job):
         for agent in agents:
             agent.reset()
 
-    def append_data(self, agents, env, state, hand, game):
+    def append_data(self, agents, env, state, hand):
         """
         Append data to the buffer contextually to the phase
 

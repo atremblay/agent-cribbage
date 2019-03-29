@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-
+from utils.device import device
 
 class ValueFunction(nn.Module):
     @staticmethod
@@ -14,5 +14,5 @@ class ValueFunction(nn.Module):
 
     def evaluate(self, xs):
         self.eval()
-        xs = [torch.tensor(x, dtype=torch.float) for x in xs]
+        xs = [device(torch.tensor(x, dtype=torch.float)) for x in xs]
         return self.forward(*xs)
