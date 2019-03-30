@@ -9,8 +9,8 @@ Agents:
         - {class: Adam, kwargs: {lr: 0.01}}
         - {class: Adam, kwargs: {lr: 0.01}}
       algorithms:
-        - {class: SarsaPhase0, kwargs: {}}
-        - {class: SarsaPhase1, kwargs: {}}
+        - {class: TD0Phase0, kwargs: {}}
+        - {class: TD0Phase1, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.1},

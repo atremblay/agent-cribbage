@@ -21,9 +21,8 @@ class Agent:
         self.choose_phase = [getattr(self, p['callback']['name']) for p in policies]
         self.choose_phase_kwargs = [p['callback']['kwargs'] for p in policies]
 
-        self.reward = []
         self.cards_2_drop_phase0 = []
-        self.statistics = {'game_won': 0}
+        self.reset()
 
         self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}
         self._reset_current_data()

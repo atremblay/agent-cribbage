@@ -17,6 +17,7 @@ class Play(Job):
     def job(self, game_offset=0):
 
         games_data_files = []
+        game_statistics = [{'game_won': 0} for _ in self.agents]
         for game in range(self['number_games']):
 
             self.agents_reset(self.agents)
@@ -58,11 +59,11 @@ class Play(Job):
                 hand += 1
 
             self.agents[winner].data['winner'] = 1  # Store winner
-            self.agents[winner].statistics['game_won'] += 1
+            game_statistics[winner]['game_won'] += 1
             self.logger.debug('winner:' + str(winner))
             games_data_files.extend(self.dump_data(self.agents, game_offset+game))
 
-        print(self.agents[0].statistics['game_won'])
+        print(game_statistics[0]['game_won'])
         return games_data_files
 
     def agents_reset(self, agents):

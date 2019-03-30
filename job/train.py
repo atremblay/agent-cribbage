@@ -51,10 +51,22 @@ class Train(Job):
         for context in training_contexts:
 
             nProcessed = 0
-            for batch_idx, (inp, reward) in enumerate(context['dataloader']):
+            for batch_idx, batch in enumerate(context['dataloader']):
 
-                inp, reward = device(inp), device(reward)
-                output = context['value_function'](inp)
+                # Deformat data batch produced by Pytorch dataloader
+                s_i, reward, s_prime = context['algorithm'].deformat(batch)
+
+                # Device context
+                s_i, reward, s_prime = [device(s) for s in s_i], device(reward), [device(s) for s in s_prime]
+
+                if len(s_prime) > 0:
+                    # Bootstrapping Value Evaluation
+                    context['value_function'].eval()
+                    reward += context['value_function'](*s_prime).flatten()
+
+                # Current State evaluation and back propagation
+                context['value_function'].train()
+                output = context['value_function'](*s_i)
                 context['optimizer'].zero_grad()
                 loss = context['loss'](output, reward)
                 loss.backward()
@@ -62,7 +74,7 @@ class Train(Job):
 
                 # Statistics
                 partialEpoch = epoch + batch_idx / len(context['dataloader'])
-                nProcessed += len(inp)
+                nProcessed += len(reward)
                 self.logger.info(
                     'Epoch: {:.2f} [{}/{} ({:.0f}%)], Loss: {:.6f}, Device: {}'.format(
                         partialEpoch, nProcessed, len(context['dataloader'].dataset),
@@ -75,17 +87,22 @@ class Train(Job):
 
         training_contexts = []
         for i, value_function in enumerate(agent.value_functions):
-            value_function.train(True)
-            context = {}
-            dataset = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
-            dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
 
-            context['dataloader'] = dataloader
-            context['value_function'] = value_function
-            context['optimizer'] = nn.MSELoss()
+            algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
+            loss = nn.MSELoss()
+
+            for dataset in algorithm.datasets.values():
+                context = {}
+                dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
+                context['optimizer'] = agent.optimizers[i]
+                context['dataloader'] = dataloader
+                context['value_function'] = value_function
+                context['loss'] = loss
+                context['algorithm'] = algorithm
+
+                training_contexts.append(context)
 
         return training_contexts
-
 
 
 
