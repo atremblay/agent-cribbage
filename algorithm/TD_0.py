@@ -34,7 +34,6 @@ class TD0Phase1(Algorithm):
         super().__init__(data_files)
 
     def _preprocess_file(self, file_data):
-        data = []
         datasets = {}
         for hand, hand_data in file_data['data'][1].items():
 

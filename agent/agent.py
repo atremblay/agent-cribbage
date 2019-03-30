@@ -155,7 +155,7 @@ class Agent:
 
                 # Choose cards to drop according to policy
                 after_state = [S_prime_phase0.astype('float32')]
-                 # Store state for data generation.
+                # Store state for data generation.
                 idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
                 self.store_state(after_state, idx_s_prime)
 
