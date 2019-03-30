@@ -62,7 +62,7 @@ class Train(Job):
                 if len(s_prime) > 0:
                     # Bootstrapping Value Evaluation
                     context['value_function'].eval()
-                    reward += context['value_function'](*s_prime).flatten()
+                    reward += context['value_function'](*s_prime).flatten().detach()
 
                 # Current State evaluation and back propagation
                 context['value_function'].train()
