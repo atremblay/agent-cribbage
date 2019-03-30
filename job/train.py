@@ -45,29 +45,47 @@ class Train(Job):
         self.agents[0].save_checkpoint('./backup.tar', epoch)
 
     def train(self, data_files, epoch):
-        agent = self.agents[0]
-        dataset = algorithm_registry[agent.algorithms[0]['class']](data_files, **agent.algorithms[0]['kwargs'])
-        dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
-        agent.value_functions[0].train(True)
-        MSE = nn.MSELoss()
-        nProcessed = 0
 
-        for batch_idx, (inp, reward) in enumerate(dataloader):
+        training_contexts = self.init_training_contexts(self.agents[0], data_files)
 
-            inp, reward = device(inp), device(reward)
-            output = agent.value_functions[0](inp)
-            agent.optimizers[0].zero_grad()
-            loss = MSE(output, reward-output.flatten())
-            loss.backward()
-            agent.optimizers[0].step()
+        for context in training_contexts:
 
-            # Statistics
-            partialEpoch = epoch + batch_idx / len(dataloader)
-            nProcessed += len(inp)
-            self.logger.info(
-                'Epoch: {:.2f} [{}/{} ({:.0f}%)], Loss: {:.6f}, Device: {}'.format(
-                    partialEpoch, nProcessed, len(dataset), 100. * batch_idx / len(dataloader),
-                    loss.item(), device)
-            )
+            nProcessed = 0
+            for batch_idx, (inp, reward) in enumerate(context['dataloader']):
+
+                inp, reward = device(inp), device(reward)
+                output = context['value_function'](inp)
+                context['optimizer'].zero_grad()
+                loss = context['loss'](output, reward)
+                loss.backward()
+                context['optimizer'].step()
+
+                # Statistics
+                partialEpoch = epoch + batch_idx / len(context['dataloader'])
+                nProcessed += len(inp)
+                self.logger.info(
+                    'Epoch: {:.2f} [{}/{} ({:.0f}%)], Loss: {:.6f}, Device: {}'.format(
+                        partialEpoch, nProcessed, len(context['dataloader'].dataset),
+                        100. * batch_idx / len(context['dataloader']),
+                        loss.item(), device)
+                )
+
+    @staticmethod
+    def init_training_contexts(agent, data_files):
+
+        training_contexts = []
+        for i, value_function in enumerate(agent.value_functions):
+            value_function.train(True)
+            context = {}
+            dataset = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
+            dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
+
+            context['dataloader'] = dataloader
+            context['value_function'] = value_function
+            context['optimizer'] = nn.MSELoss()
+
+        return training_contexts
+
+
 
 
