@@ -6,6 +6,7 @@ from .play import Play
 from algorithm.register import registry as algorithm_registry
 from torch import nn
 from torch.utils.data import DataLoader
+import os
 
 
 @register
@@ -21,6 +22,7 @@ class Train(Job):
         # Add arguments
         self.parser.add_argument("--data_dir", default=None)
         self.parser.add_argument("--epochs", default=5, type=int)
+        self.parser.add_argument("--dataepochs2keep", default=3, type=int)
 
     def init_algo(self):
         if self.args.algo == 'QLearning':
@@ -37,10 +39,19 @@ class Train(Job):
         game_offset = 0
         self.resolve_cuda()
         self.agents[0].init_optimizer()
+        all_data_files = []
         for epoch in range(self['epochs']):
             data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
             game_offset += len(data_files)//len(self.agents)
-            self.train(data_files, epoch)
+            all_data_files.extend(data_files)
+
+            # delete data files that are too old
+            number_of_file_2_keep = self['dataepochs2keep']*self['number_games']*len(self.agents)
+            [os.remove(f) for f in all_data_files[:-number_of_file_2_keep]]
+
+            # Train on newest data files
+            all_data_files = all_data_files[-number_of_file_2_keep:]
+            self.train(all_data_files, epoch)
 
         self.agents[0].save_checkpoint('./backup.tar', epoch)
 
@@ -103,6 +114,3 @@ class Train(Job):
                 training_contexts.append(context)
 
         return training_contexts
-
-
-
