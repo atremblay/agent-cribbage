@@ -148,13 +148,10 @@ class Agent:
 
             else:
                 # Unique 4 cards permutations (Good for all numbers of players)
-                s_prime_combinations = list(combinations(state.hand, 4))
-                # Append dealer to input and convert it to vector state
-                S_prime_phase0 = np.array([np.append(Stack(p).state, env.dealer == state.hand_id)
-                                           for p in s_prime_combinations])
+                s_prime_combinations = [Stack(c) for c in combinations(state.hand, 4)]
+                # Convert stack to numpy
+                after_state = [self.value_functions[env.phase].stack_to_numpy(s_prime_combinations, state, env)]
 
-                # Choose cards to drop according to policy
-                after_state = [S_prime_phase0.astype('float32')]
                 # Store state for data generation.
                 idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
                 self.store_state(after_state, idx_s_prime)

@@ -1,6 +1,7 @@
 from .value_function import ValueFunction
 import torch.nn as nn
 from .register import register
+import numpy as np
 
 
 @register
@@ -24,3 +25,7 @@ class FFW(ValueFunction):
     def forward(self, x):
         out = self.ffw(x)
         return out
+
+    @staticmethod
+    def stack_to_numpy(stacks, state, env):
+        return np.array([np.append(p.state, env.dealer == state.hand_id) for p in stacks], dtype=np.float32)

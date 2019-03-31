@@ -76,32 +76,15 @@ class Conv(ValueFunction):
         )
 
         self.apply(self.weights_init)
+        self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
 
     @staticmethod
     def stack_to_tensor(stacks):
-        if isinstance(stacks, Stack):
-            stacks = [stacks]
-        batch_size = len(stacks)
-        tarot = np.zeros((batch_size, 4, 13, 4), dtype=np.float32)
-        for i, stack in enumerate(stacks):
-            for j, card in enumerate(sorted(stack)):
-                rank, suit = RANKS.index(card.rank), SUITS.index(card.suit)
-                tarot[i, suit, rank, j] = 1
-        tarot = torch.tensor(tarot)
-        return tarot
+        return torch.tensor(stack_to_numpy(stacks))
 
     @staticmethod
-    def stack_to_numpy(stacks):
-        if isinstance(stacks, Stack):
-            stacks = [stacks]
-        batch_size = len(stacks)
-        tarot = np.zeros((batch_size, 4, 13, 4), dtype=np.float32)
-        for i, stack in enumerate(stacks):
-            for j, card in enumerate(sorted(stack)):
-                rank, suit = RANKS.index(card.rank), SUITS.index(card.suit)
-                tarot[i, suit, rank, j] = 1
-        tarot = torch.tensor(tarot)
-        return tarot
+    def stack_to_numpy(stacks, state, env):
+        return stack_to_numpy(stacks)
 
     def forward(self, x_tarot):
         suit = self.suit(x_tarot.sum(dim=2).sum(dim=-1).unsqueeze(1))
@@ -163,3 +146,15 @@ class ConvEval:
         tarot = Conv.stack_to_tensor(stack)
 
         return self.model(torch.tensor(tarot))
+
+
+def stack_to_numpy(stacks):
+    if isinstance(stacks, Stack):
+        stacks = [stacks]
+    batch_size = len(stacks)
+    tarot = np.zeros((batch_size, 4, 13, 4), dtype=np.float32)
+    for i, stack in enumerate(stacks):
+        for j, card in enumerate(sorted(stack)):
+            rank, suit = RANKS.index(card.rank), SUITS.index(card.suit)
+            tarot[i, suit, rank, j] = 1
+    return tarot
