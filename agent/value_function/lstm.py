@@ -24,7 +24,6 @@ class LSTM(ValueFunction):
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(52, 1),
-            nn.ReLU(True),
         )
         # Before applying weights
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
@@ -60,13 +59,13 @@ class SimpleLSTM(ValueFunction):
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(52, 1),
-            nn.ReLU(True),
         )
         # Before applying weights
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
         self.apply(self.weights_init)
 
-    def forward(self, x):
+    def forward(self, x, discarded):
         out, (hidden, cell) = self.lstm(x)
         out = out[:, -1, :]  # Only keeps last value of sequence
+        out = self.clf(out)
         return out
