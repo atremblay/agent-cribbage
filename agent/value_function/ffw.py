@@ -27,5 +27,5 @@ class FFW(ValueFunction):
         return out
 
     @staticmethod
-    def stack_to_numpy(stacks, state, env):
+    def stack_and_state_to_numpy(stacks, state, env):
         return [np.array([np.append(p.state, env.dealer == state.hand_id) for p in stacks], dtype=np.float32)]
