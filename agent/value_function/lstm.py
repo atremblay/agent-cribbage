@@ -69,4 +69,5 @@ class SimpleLSTM(ValueFunction):
     def forward(self, x):
         out, (hidden, cell) = self.lstm(x)
         out = out[:, -1, :]  # Only keeps last value of sequence
+        out = self.clf(out)
         return out
