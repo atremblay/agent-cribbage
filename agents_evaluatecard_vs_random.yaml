@@ -4,7 +4,7 @@ Agents:
     kwargs:
       value_functions:
         - {class: EvalCards, kwargs: {}}
-        - {class: LSTM, kwargs: {}}
+        - {class: EvalPlays, kwargs: {}}
       optimizers:
         - {class: Adam, kwargs: {}}
         - {class: Adam, kwargs: {}}
