@@ -1,7 +1,6 @@
 from .job import Job
 from utils.device import device
 from .register import register
-import os
 from .play import Play
 from algorithm.register import registry as algorithm_registry
 from torch import nn
@@ -23,10 +22,6 @@ class Train(Job):
         self.parser.add_argument("--data_dir", default=None)
         self.parser.add_argument("--epochs", default=5, type=int)
         self.parser.add_argument("--dataepochs2keep", default=3, type=int)
-
-    def init_algo(self):
-        if self.args.algo == 'QLearning':
-            return {}
 
     def get_data_files(self, agent_hash):
         for root, dirs, files in os.walk(self['data_dir']):
@@ -53,7 +48,7 @@ class Train(Job):
             all_data_files = all_data_files[-number_of_file_2_keep:]
             self.train(all_data_files, epoch)
 
-        self.agents[0].save_checkpoint('./backup.tar', epoch)
+        self.agents[0].save_checkpoint('./'+os.path.splitext(os.path.split(self['agent_yaml'])[1])[0]+'.tar', epoch)
 
     def train(self, data_files, epoch):
 
@@ -99,18 +94,20 @@ class Train(Job):
         training_contexts = []
         for i, value_function in enumerate(agent.value_functions):
 
-            algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
-            loss = nn.MSELoss()
+            # If value function needs trainings
+            if value_function.need_training:
+                algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
+                loss = nn.MSELoss()
 
-            for dataset in algorithm.datasets.values():
-                context = {}
-                dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
-                context['optimizer'] = agent.optimizers[i]
-                context['dataloader'] = dataloader
-                context['value_function'] = value_function
-                context['loss'] = loss
-                context['algorithm'] = algorithm
+                for dataset in algorithm.datasets.values():
+                    context = {}
+                    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
+                    context['optimizer'] = agent.optimizers[i]
+                    context['dataloader'] = dataloader
+                    context['value_function'] = value_function
+                    context['loss'] = loss
+                    context['algorithm'] = algorithm
 
-                training_contexts.append(context)
+                    training_contexts.append(context)
 
         return training_contexts

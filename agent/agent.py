@@ -23,7 +23,6 @@ class Agent:
 
         self.cards_2_drop_phase0 = []
         self.reset()
-
         self.data = {'winner': 0, 'data': {0: {}, 1: {}, 2: {}}}
         self._reset_current_data()
         self.logger = logging.getLogger(__name__)
@@ -76,7 +75,8 @@ class Agent:
         for v, v_state, o, o_state in zip(self.value_functions, checkpoint['model_state_dict'],
                                           self.optimizers, checkpoint['optimizer_state_dict']):
             v.load_state_dict(v_state)
-            o.load_state_dict(o_state)
+            if o is not None:
+                o.load_state_dict(o_state)
 
         return checkpoint['epoch']
 
@@ -85,7 +85,11 @@ class Agent:
         optimizer_state_dict = []
         for v, o in zip(self.value_functions, self.optimizers):
             model_state_dict.append(v.state_dict())
-            optimizer_state_dict.append(o.state_dict())
+
+            if o is not None:
+                optimizer_state_dict.append(o.state_dict())
+            else:
+                optimizer_state_dict.append(o)
 
         torch.save({
             'epoch': epoch,
@@ -99,7 +103,10 @@ class Agent:
 
     def init_optimizer(self):
         for i, o in enumerate(self.optimizers_define):
-            self.optimizers.append(getattr(torch.optim, o['class'])(self.value_functions[i].parameters(), **o['kwargs']))
+            if self.value_functions[i].need_training:
+                self.optimizers.append(getattr(torch.optim, o['class'])(self.value_functions[i].parameters(), **o['kwargs']))
+            else:
+                self.optimizers.append(None)
 
     def choose(self, state, env):
         return self.choose_phase[env.phase](state, env, **self.choose_phase_kwargs[env.phase])

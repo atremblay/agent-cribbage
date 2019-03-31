@@ -22,6 +22,7 @@ class Job:
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
         self.agents = agent
+        self.cuda = False
 
     def _setup_job(self, name, args, logger):
         if args is None:
@@ -35,8 +36,9 @@ class Job:
         else:
             self.logger = logger
 
-        self.init_agent()
         self.resolve_cuda()
+        self.init_agent()
+
 
     def _setup_args(self, name):
         self.args = self.parser.parse_args()
@@ -81,6 +83,10 @@ class Job:
             for shared_agent in config['Agents']:
                 agent = Agent(**shared_agent['kwargs'])
 
+                if self['cuda']:
+                    for v in agent.value_functions:
+                        v.cuda()
+
                 if shared_agent['file'] is not None:
                     agent.load_checkpoint(shared_agent['file'])
                 self.agents.extend(self.config_shared_agent(shared_agent['number'], agent))
@@ -111,8 +117,3 @@ class Job:
             print("CUDA not available on your machine. Setting it back to False")
             self.args.cuda = False
             device.isCuda = False
-
-        if device.isCuda:
-            for a in self.agents:
-                for v in a.value_functions:
-                    v.cuda()

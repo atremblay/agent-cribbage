@@ -4,6 +4,12 @@ from utils.device import device
 
 
 class ValueFunction(nn.Module):
+    def __init__(self):
+        """
+        """
+        super().__init__()
+        self.need_training = True
+
     @staticmethod
     def weights_init(m):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):

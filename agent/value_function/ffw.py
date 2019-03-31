@@ -14,10 +14,10 @@ class FFW(ValueFunction):
         # Logistic Regression
         self.ffw = nn.Sequential(
             nn.Linear(53, 106),
-            nn.ReLU(True),
+            nn.ReLU(),
             nn.Dropout(),
             nn.Linear(106, 1),
-            nn.ReLU(True),
+            nn.ReLU(),
         )
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
         self.apply(self.weights_init)

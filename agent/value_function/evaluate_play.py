@@ -12,10 +12,11 @@ class EvalPlays(ValueFunction):
         """
         super().__init__()
         self.custom_hash = __name__ + 'V0.0.0'
+        self.need_training = False
 
     def forward(self, stacks, discarded):
         values = torch.zeros(len(stacks), dtype=torch.float)
-        for i, stack in enumerate(stacks.numpy()):
+        for i, stack in enumerate(stacks.cpu().numpy()):
             myStack = Stack()
             for card_idx in np.argwhere(np.sum(stack, axis=0) == True):
                 myStack.add_(Card(*Card.rank_suit_from_idx(int(card_idx))))
