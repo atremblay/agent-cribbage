@@ -28,4 +28,4 @@ class FFW(ValueFunction):
 
     @staticmethod
     def stack_to_numpy(stacks, state, env):
-        return np.array([np.append(p.state, env.dealer == state.hand_id) for p in stacks], dtype=np.float32)
+        return [np.array([np.append(p.state, env.dealer == state.hand_id) for p in stacks], dtype=np.float32)]

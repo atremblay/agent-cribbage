@@ -80,11 +80,11 @@ class Conv(ValueFunction):
 
     @staticmethod
     def stack_to_tensor(stacks):
-        return torch.tensor(stack_to_numpy(stacks))
+        return [torch.tensor(stack_to_numpy(stacks))]
 
     @staticmethod
     def stack_to_numpy(stacks, state, env):
-        return stack_to_numpy(stacks)
+        return [stack_to_numpy(stacks)]
 
     def forward(self, x_tarot):
         suit = self.suit(x_tarot.sum(dim=2).sum(dim=-1).unsqueeze(1))
