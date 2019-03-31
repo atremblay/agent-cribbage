@@ -10,11 +10,11 @@ from gym_cribbage.envs.cribbage_env import Stack, RANKS, SUITS
 
 @register
 class Conv(ValueFunction):
-    def __init__(self, out_channels=15):
+    def __init__(self, out_channels=15, with_dealer=False):
         """
         """
         super().__init__()
-
+        self.with_dealer = with_dealer
         self.tarot2 = nn.Sequential(
             nn.Conv1d(
                 in_channels=1,
@@ -53,6 +53,8 @@ class Conv(ValueFunction):
         )
         num_outputs += 4 * 5
         num_outputs += 13
+        if with_dealer:
+            num_outputs += 1
 
         self.ranks = nn.Sequential(
             nn.Linear(13, 13),
@@ -79,30 +81,60 @@ class Conv(ValueFunction):
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
 
     @staticmethod
-    def stack_to_tensor(stacks):
+    def stack_to_tensor(stacks, dealer=None):
+        if dealer is None:
+            return torch.tensor(stack_to_numpy(stacks))
+        else:
+            s, d = Conv.stack_to_numpy(stacks, dealer)
+            return torch.tensor(s), torch.tensor(d)
+
+    @staticmethod
+    def stack_to_numpy(stacks, dealer=None):
+        stacks = stack_to_numpy(stacks)
+        if len(stacks) != len(dealer):
+            raise ValueError("stacks and dealer must be of same length")
+
+        if dealer is None:
+            return stacks
+        else:
+            dealer = np.array(dealer, dtype=np.float32)
+            if len(dealer.shape) == 1:
+                # Need to unsqueeze last dim
+                dealer = dealer[:, None]
+            return stacks, dealer
+
+    @staticmethod
+    def stack_and_state_to_tensor(stacks, state=None, env=None):
         return [torch.tensor(stack_to_numpy(stacks))]
 
     @staticmethod
-    def stack_to_numpy(stacks, state, env):
+    def stack_and_state_to_numpy(stacks, state=None, env=None):
         return [stack_to_numpy(stacks)]
 
-    def forward(self, x_tarot):
+    def forward(self, x_tarot, dealer=None):
+        if self.with_dealer and dealer is None:
+            raise Exception(
+                "Model was built with dealer in mind. Need to provide "
+                "the `dealer` attribute"
+            )
+
         suit = self.suit(x_tarot.sum(dim=2).sum(dim=-1).unsqueeze(1))
         tarot = x_tarot.sum(dim=1).sum(dim=-1).unsqueeze(1)
         tarot2 = self.tarot2(tarot)
         tarot3 = self.tarot3(tarot)
         tarot4 = self.tarot4(tarot)
 
-        cat = torch.cat(
-            [
-                tarot2.flatten(start_dim=1),
-                tarot3.flatten(start_dim=1),
-                tarot4.flatten(start_dim=1),
-                self.ranks(x_tarot.sum(dim=1).sum(dim=-1)),
-                suit.flatten(start_dim=1)
-            ],
-            dim=1
-        )
+        to_cat = [
+            tarot2.flatten(start_dim=1),
+            tarot3.flatten(start_dim=1),
+            tarot4.flatten(start_dim=1),
+            self.ranks(x_tarot.sum(dim=1).sum(dim=-1)),
+            suit.flatten(start_dim=1)
+        ]
+        if dealer is not None:
+            to_cat.append(dealer)
+
+        cat = torch.cat(to_cat, dim=1)
 
         out = self.clf(cat)
         return out
