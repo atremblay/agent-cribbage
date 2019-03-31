@@ -1,6 +1,6 @@
 Agents:
   - number: 1
-    file: './agents.tar'
+    file: ./Train_agent.tar
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {}}

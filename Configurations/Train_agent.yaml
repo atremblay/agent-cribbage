@@ -1,20 +1,20 @@
 Agents:
   - number: 2
-    file: ./agents.tar
+    file:
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {}}
-        - {class: LSTM, kwargs: {}}
+        - {class: SimpleLSTM, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.00009}}
-        - {class: Adam, kwargs: {lr: 0.00009}}
+        - {class: Adam, kwargs: {lr: 0.0005}}
+        - {class: Adam, kwargs: {lr: 0.0005}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.025},
+           kwargs: {epsilon: 0.075},
            callback: {name: choose_phase0, kwargs: {}}}
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.025},
+           kwargs: {epsilon: 0.075},
            callback: {name: choose_phase1, kwargs: {}}}

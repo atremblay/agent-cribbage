@@ -6,7 +6,8 @@ from algorithm.register import registry as algorithm_registry
 from torch import nn
 from torch.utils.data import DataLoader
 import os
-
+import shutil
+from datetime import datetime
 
 @register
 class Train(Job):
@@ -14,20 +15,22 @@ class Train(Job):
         super().__init__()
         super()._setup_job(__name__, None, None)
 
-        if self['data_dir'] is None:
-            self['data_dir'] = '/'+os.path.join(*self['save'].split(os.path.sep)[:-2], 'job.play')
+        # Initialize checkpoint directory and backup old dir
+        if os.path.isdir(self.get_checkpoint_dir):
+            shutil.make_archive(self.get_checkpoint_name+'_backup_'+datetime.now().strftime('%Y_%m_%d_%H_%M_%S'), 'zip',
+                                self.get_checkpoint_dir)
+            shutil.rmtree(self.get_checkpoint_dir)
+
+        os.makedirs(self.get_checkpoint_dir)
 
     def add_argument(self):
         # Add arguments
         self.parser.add_argument("--data_dir", default=None)
         self.parser.add_argument("--epochs", default=5, type=int)
+        self.parser.add_argument("--epoch_start", default=0, type=int)
         self.parser.add_argument("--dataepochs2keep", default=3, type=int)
-
-    def get_data_files(self, agent_hash):
-        for root, dirs, files in os.walk(self['data_dir']):
-            for file in files:
-                if file.endswith(agent_hash):
-                    yield os.path.join(root, file)
+        self.parser.add_argument("--checkpoint_period", default=10, type=int)
+        self.parser.add_argument("--checkpoint_dir", default='./', type=str)
 
     def job(self):
 
@@ -35,7 +38,7 @@ class Train(Job):
         self.resolve_cuda()
         self.agents[0].init_optimizer()
         all_data_files = []
-        for epoch in range(self['epochs']):
+        for epoch in range(self['epoch_start'], self['epoch_start']+self['epochs']):
             data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
             game_offset += len(data_files)//len(self.agents)
             all_data_files.extend(data_files)
@@ -48,7 +51,21 @@ class Train(Job):
             all_data_files = all_data_files[-number_of_file_2_keep:]
             self.train(all_data_files, epoch)
 
-        self.agents[0].save_checkpoint('./'+os.path.splitext(os.path.split(self['agent_yaml'])[1])[0]+'.tar', epoch)
+            if epoch % self['checkpoint_period'] == 0:
+                self.agents[0].save_checkpoint(self.get_checkpoint_file(epoch), epoch)
+
+        self.agents[0].save_checkpoint(self.get_checkpoint_file(epoch), epoch)
+
+    @property
+    def get_checkpoint_dir(self):
+        return os.path.join(self['checkpoint_dir'], self.get_checkpoint_name)
+
+    def get_checkpoint_file(self, epoch):
+        return os.path.join(self.get_checkpoint_dir,self.get_checkpoint_name+'_'+str(epoch)+'.tar')
+
+    @property
+    def get_checkpoint_name(self):
+        return os.path.splitext(os.path.split(self['agent_yaml'])[1])[0]
 
     def train(self, data_files, epoch):
 

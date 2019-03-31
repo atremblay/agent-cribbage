@@ -39,7 +39,6 @@ class Job:
         self.resolve_cuda()
         self.init_agent()
 
-
     def _setup_args(self, name):
         self.args = self.parser.parse_args()
         self.args.save = os.path.join(self.args.save, getpass.getuser(), 'agent-cribbage', name)
@@ -88,7 +87,7 @@ class Job:
                         v.cuda()
 
                 if shared_agent['file'] is not None:
-                    agent.load_checkpoint(shared_agent['file'])
+                    self['epoch_start'] = agent.load_checkpoint(shared_agent['file'])
                 self.agents.extend(self.config_shared_agent(shared_agent['number'], agent))
 
         assert len(self.agents) == 2  # Environment does not support more than 2 players now
