@@ -157,7 +157,7 @@ class Agent:
                 # Unique 4 cards permutations (Good for all numbers of players)
                 s_prime_combinations = [Stack(c) for c in combinations(state.hand, 4)]
                 # Convert stack to numpy
-                after_state = self.value_functions[env.phase].stack_to_numpy(s_prime_combinations, state, env)
+                after_state = self.value_functions[env.phase].stack_and_state_to_numpy(s_prime_combinations, state, env)
 
                 # Store state for data generation.
                 idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])

@@ -47,7 +47,7 @@ class SimpleLSTM(ValueFunction):
         """
         super().__init__()
 
-        self.lstm = nn.SimpleLSTM(
+        self.lstm = nn.LSTM(
             input_size=52,
             hidden_size=104,
             num_layers=2,
