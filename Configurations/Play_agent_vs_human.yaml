@@ -1,9 +1,9 @@
 Agents:
   - number: 1
-    file: './backup.tar'
+    file: './agents.tar'
     kwargs:
       value_functions:
-        - {class: FFW, kwargs: {}}
+        - {class: Conv, kwargs: {}}
         - {class: LSTM, kwargs: {}}
       optimizers:
         - {class: Adam, kwargs: {}}

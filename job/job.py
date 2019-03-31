@@ -16,7 +16,7 @@ class Job:
 
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
-        self.parser.add_argument('--agent_yaml', type=str, default='./agent-cribbage/agents.yaml')
+        self.parser.add_argument('--agent_yaml', type=str, default='./agent-cribbage/Configurations/Train_agent.yaml')
         self.parser.add_argument('--cuda', default=False, action='store_true')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
