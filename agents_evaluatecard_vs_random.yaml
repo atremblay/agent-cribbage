@@ -1,9 +1,9 @@
 Agents:
   - number: 1
-    file: './backup.tar'
+    file:
     kwargs:
       value_functions:
-        - {class: Conv, kwargs: {}}
+        - {class: EvalCards, kwargs: {}}
         - {class: LSTM, kwargs: {}}
       optimizers:
         - {class: Adam, kwargs: {}}
@@ -11,10 +11,10 @@ Agents:
       algorithms:
       policies:
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.1},
+           kwargs: {epsilon: 0.0},
            callback: {name: choose_phase0, kwargs:{}}}
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.1},
+           kwargs: {epsilon: 0.0},
            callback: {name: choose_phase1, kwargs:{}}}
   - number: 1
     file:

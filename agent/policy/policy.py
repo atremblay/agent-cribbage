@@ -7,7 +7,8 @@ class Policy:
         return np.random.choice(np.arange(0, len(probability)), p=probability)
 
     def choose(self, states, value_function):
-        V_s = [v.data.tolist()[0] for v in value_function.evaluate(states)]
+        values = value_function.evaluate(states).squeeze()
+        V_s = [v.data.tolist() for v in values] if values.nelement() > 1 else [values.data.tolist()]
         return self.prob(V_s)
 
     def prob(self, V_s):
