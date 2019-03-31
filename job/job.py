@@ -16,7 +16,7 @@ class Job:
 
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
-        self.parser.add_argument('--agent_yaml', type=str, default='./agent-cribbage/Configurations/Train_agent.yaml')
+        self.parser.add_argument('--agent_yaml', type=str, default=None)
         self.parser.add_argument('--cuda', default=False, action='store_true')
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
@@ -37,7 +37,7 @@ class Job:
             self.logger = logger
 
         self.resolve_cuda()
-        self.init_agent()
+        self.init_agent(self['agent_yaml'])
 
     def _setup_args(self, name):
         self.args = self.parser.parse_args()
@@ -66,15 +66,15 @@ class Job:
         with open(os.path.join(self.args.save, 'commandline_args.txt'), 'w') as f:
             f.write('\n'.join(sys.argv[1:]))
 
-    def init_agent(self):
+    def init_agent(self, agent_yaml):
         """ Initialize agents
 
         :return:
         """
 
-        if self.agents is None:
+        if self.agents is None and agent_yaml is not None:
             # Parse agent yaml file
-            with open(self['agent_yaml'], 'rt') as file:
+            with open(agent_yaml, 'rt') as file:
                 config = yaml.safe_load(file.read())
 
             # Create all agents form config
@@ -90,8 +90,7 @@ class Job:
                     self['epoch_start'] = agent.load_checkpoint(shared_agent['file'])
                 self.agents.extend(self.config_shared_agent(shared_agent['number'], agent))
 
-        assert len(self.agents) == 2  # Environment does not support more than 2 players now
-
+        assert agent_yaml is None or len(self.agents) == 2  # Environment does not support more than 2 players now
 
     @staticmethod
     def config_shared_agent(number_of_shared_agent, agent):

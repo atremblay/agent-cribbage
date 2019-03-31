@@ -9,6 +9,7 @@ import os
 import shutil
 from datetime import datetime
 
+
 @register
 class Train(Job):
     def __init__(self):
@@ -39,7 +40,7 @@ class Train(Job):
         self.agents[0].init_optimizer()
         all_data_files = []
         for epoch in range(self['epoch_start'], self['epoch_start']+self['epochs']):
-            data_files = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
+            data_files, _ = Play(agent=self.agents, args=self.args, logger=self.logger).job(game_offset=game_offset)
             game_offset += len(data_files)//len(self.agents)
             all_data_files.extend(data_files)
 

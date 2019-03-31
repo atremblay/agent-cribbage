@@ -63,8 +63,7 @@ class Play(Job):
             self.logger.debug('winner:' + str(winner))
             games_data_files.extend(self.dump_data(self.agents, game_offset+game))
 
-        print(game_statistics[0]['game_won'])
-        return games_data_files
+        return games_data_files, game_statistics
 
     def agents_reset(self, agents):
         for agent in agents:
