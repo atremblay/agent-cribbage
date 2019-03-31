@@ -1,6 +1,6 @@
 Agents:
   - number: 1
-    file: ./agents_winner.tar
+    file: ./agents.tar
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {}}
@@ -9,8 +9,8 @@ Agents:
         - {class: Adam, kwargs: {lr: 0.001}}
         - {class: Adam, kwargs: {lr: 0.001}}
       algorithms:
-        - {class: WinnerPhase0, kwargs: {}}
-        - {class: WinnerPhase1, kwargs: {}}
+        - {class: TD0Phase0, kwargs: {}}
+        - {class: TD0Phase1, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.05},
@@ -22,14 +22,16 @@ Agents:
     file:
     kwargs:
       value_functions:
-        - {class: FFW, kwargs: {}}
-        - {class: LSTM, kwargs: {}}
+        - {class: EvalCards, kwargs: {}}
+        - {class: EvalPlays, kwargs: {}}
       optimizers:
+        - {class: Adam, kwargs: {}}
+        - {class: Adam, kwargs: {}}
       algorithms:
       policies:
-        - {class: Random,
-           kwargs: {},
-           callback: {name: choose_random, kwargs:{}}}
-        - {class: Random,
-           kwargs: {},
-           callback: {name: choose_random, kwargs:{}}}
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.0},
+           callback: {name: choose_phase0, kwargs:{}}}
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.0},
+           callback: {name: choose_phase1, kwargs:{}}}
