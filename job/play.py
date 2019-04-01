@@ -41,7 +41,6 @@ class Play(Job):
                     else:
                         state, reward, done, debug = env.step([])
 
-
                     self.logger.debug('\t\tPhase: ' + str(env.phase) + ' Player:' + str(state.reward_id) +
                                       ' gets reward: ' + str(reward))
 

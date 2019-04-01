@@ -29,7 +29,7 @@ class Train(Job):
         self.parser.add_argument("--data_dir", default=None)
         self.parser.add_argument("--epochs", default=5, type=int)
         self.parser.add_argument("--epoch_start", default=0, type=int)
-        self.parser.add_argument("--dataepochs2keep", default=3, type=int)
+        self.parser.add_argument("--dataepochs2keep", default=1, type=int)
         self.parser.add_argument("--checkpoint_period", default=10, type=int)
         self.parser.add_argument("--checkpoint_dir", default='./', type=str)
 
@@ -62,7 +62,7 @@ class Train(Job):
         return os.path.join(self['checkpoint_dir'], self.get_checkpoint_name)
 
     def get_checkpoint_file(self, epoch):
-        return os.path.join(self.get_checkpoint_dir,self.get_checkpoint_name+'_'+str(epoch)+'.tar')
+        return os.path.join(self.get_checkpoint_dir, self.get_checkpoint_name+'_'+str(epoch)+'.tar')
 
     @property
     def get_checkpoint_name(self):

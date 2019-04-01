@@ -15,7 +15,7 @@ class EvalCards(ValueFunction):
         self.need_training = False
 
     @staticmethod
-    def stack_to_numpy(stacks, state, env):
+    def stack_and_state_to_numpy(stacks, state, env):
         return [np.array([p.state for p in stacks])]
 
     def forward(self, stacks):
