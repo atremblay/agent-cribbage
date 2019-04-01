@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import os
 import shutil
 from datetime import datetime
-
+import torch
 
 @register
 class Train(Job):
@@ -86,7 +86,13 @@ class Train(Job):
                 if len(s_prime) > 0:
                     # Bootstrapping Value Evaluation
                     context['value_function'].eval()
-                    reward += context['value_function'](*s_prime).flatten().detach()
+                    for sample in range(s_prime[0].shape[0]):
+                        values = context['value_function'](s_prime[0][sample], s_prime[1][sample]).detach().squeeze()
+                        idx, prob = context['policy'].choose_between_values(values)
+
+                        prob = device(torch.tensor(prob, dtype=torch.float32))
+                        importance_sampling_ratio = s_prime[-1][sample] / device(torch.tensor(prob, dtype=torch.float32))
+                        reward[sample] += context['algorithm'].callback(values, prob, importance_sampling_ratio, idx)
 
                 # Current State evaluation and back propagation
                 context['value_function'].train()
@@ -116,6 +122,7 @@ class Train(Job):
             if value_function.need_training:
                 algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
                 loss = nn.MSELoss()
+                policy = agent.policies[i]
 
                 for dataset in algorithm.datasets.values():
                     context = {}
@@ -125,6 +132,7 @@ class Train(Job):
                     context['value_function'] = value_function
                     context['loss'] = loss
                     context['algorithm'] = algorithm
+                    context['policy'] = policy
 
                     training_contexts.append(context)
 

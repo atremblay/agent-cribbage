@@ -10,7 +10,7 @@ class Random(Policy):
         super().__init__()
 
     def choose(self, actions, value_function=None):
-        return random.randint(0, len(actions)-1)
+        return random.randint(0, len(actions)-1), [1.0/len(actions) for _ in range(len(actions))]
 
     @property
     def custom_hash(self):

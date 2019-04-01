@@ -33,10 +33,10 @@ class Agent:
     def _reset_current_data(self):
         self.current_data = [None, None]
 
-    def store_state(self, state, idx_choice):
+    def store_state(self, state, prob):
         if self.current_data[0] is not None:
             raise ValueError('State cannot be overridden.')
-        self.current_data[0] = (state, idx_choice)
+        self.current_data[0] = (state, prob)
 
     def store_reward(self, reward):
         if self.current_data[1] is None:
@@ -160,12 +160,12 @@ class Agent:
                 after_state = self.value_functions[env.phase].stack_and_state_to_numpy(s_prime_combinations, state, env)
 
                 # Store state for data generation.
-                idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
-                self.store_state(after_state, idx_s_prime)
+                prob = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
+                self.store_state(after_state, prob)
 
                 # Remove cards that stay in hand
                 self.cards_2_drop_phase0 = copy.deepcopy(state.hand)
-                tuple(self.cards_2_drop_phase0.discard(card) for card in s_prime_combinations[idx_s_prime])
+                tuple(self.cards_2_drop_phase0.discard(card) for card in s_prime_combinations[prob[0]])
 
         # Gives next card to drop, and update drop buffer
         card2drop, self.cards_2_drop_phase0 = self.cards_2_drop_phase0[0], self.cards_2_drop_phase0[1:]
@@ -192,12 +192,12 @@ class Agent:
             after_state = [hand.astype('float32'),
                            np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0).astype('float32')]
 
-            idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
-            self.store_state(after_state, idx_s_prime)
+            prob = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
+            self.store_state(after_state, prob)
 
-            return state.hand[idx_s_prime]
+            return state.hand[prob[0]]
 
     def choose_random(self, state, env):
-        idx_s_prime = self.policies[env.phase].choose(state.hand)
+        idx_s_prime, _ = self.policies[env.phase].choose(state.hand)
         return state.hand[idx_s_prime]
 

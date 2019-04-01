@@ -16,8 +16,13 @@ class EpsilonGreedy(Policy):
         return __name__+str(self.epsilon)
 
     def prob(self, V_s):
+        argmax = int(np.argmax(V_s))
+        prob = [(self.epsilon)/len(V_s) for _ in range(len(V_s))]
+        prob[argmax] += (1.0-self.epsilon)
         if self.epsilon <= random.uniform(0, 1):
-            return int(np.argmax(V_s))
+            idx = argmax
         else:
-            return random.randint(0, len(V_s) - 1)
+            idx = random.randint(0, len(V_s) - 1)
+
+        return idx, prob
 

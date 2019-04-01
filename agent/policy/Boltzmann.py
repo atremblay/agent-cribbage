@@ -2,6 +2,7 @@ from .policy import Policy
 import numpy as np
 from .register import register
 
+
 @register
 class Boltzmann(Policy):
 
@@ -11,7 +12,7 @@ class Boltzmann(Policy):
 
     def prob(self, Q_s):
         Q_s_Softmax = self.softmax(Q_s, self.tao)
-        return self.ramdom_choice(Q_s_Softmax)
+        return self.ramdom_choice(Q_s_Softmax), Q_s_Softmax
 
     def softmax(self, x, axis=None):
         "Stable definition of Softmax"

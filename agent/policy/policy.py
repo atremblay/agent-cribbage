@@ -11,6 +11,11 @@ class Policy:
         V_s = [v.data.tolist() for v in values] if values.nelement() > 1 else [values.data.tolist()]
         return self.prob(V_s)
 
+    def choose_between_values(self, values):
+        values = values.squeeze()
+        V_s = [v.data.tolist() for v in values] if values.nelement() > 1 else [values.data.tolist()]
+        return self.prob(V_s)
+
     def prob(self, V_s):
         """
         To implement in subclass
