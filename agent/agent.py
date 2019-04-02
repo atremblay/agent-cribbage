@@ -73,11 +73,8 @@ class Agent:
     def load_checkpoint(self, checkpoint_file):
         checkpoint = torch.load(checkpoint_file)
         self.init_optimizer()
-        for v, v_state, o, o_state in zip(self.value_functions, checkpoint['model_state_dict'],
-                                          self.optimizers, checkpoint['optimizer_state_dict']):
+        for v, v_state in zip(self.value_functions, checkpoint['model_state_dict']):
             v.load_state_dict(v_state)
-            #if o is not None:
-                #o.load_state_dict(o_state)
 
         return checkpoint['epoch']
 
