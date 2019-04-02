@@ -6,15 +6,15 @@ Agents:
         - {class: Conv, kwargs: {}}
         - {class: SimpleLSTM, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.0005}}
-        - {class: Adam, kwargs: {lr: 0.0005}}
+        - {class: Adam, kwargs: {lr: 0.001}}
+        - {class: Adam, kwargs: {lr: 0.001}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.075},
+           kwargs: {epsilon: 0.02},
            callback: {name: choose_phase0, kwargs: {}}}
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.075},
+           kwargs: {epsilon: 0.02},
            callback: {name: choose_phase1, kwargs: {}}}

@@ -55,6 +55,12 @@ class Train(Job):
             if epoch % self['checkpoint_period'] == 0:
                 self.agents[0].save_checkpoint(self.get_checkpoint_file(epoch), epoch)
 
+            for a in self.agents:
+                for s in a.scheduler:
+                    if s is not None:
+                        s.step()
+                        self.logger.info(s.get_lr())
+
         self.agents[0].save_checkpoint(self.get_checkpoint_file(epoch), epoch)
 
     @property
@@ -74,37 +80,38 @@ class Train(Job):
 
         for context in training_contexts:
 
-            nProcessed = 0
-            for batch_idx, batch in enumerate(context['dataloader']):
+            for _ in range(self['number_games']):
+                nProcessed = 0
+                for batch_idx, batch in enumerate(context['dataloader']):
 
-                # Deformat data batch produced by Pytorch dataloader
-                s_i, reward, s_prime = context['algorithm'].deformat(batch)
+                    # Deformat data batch produced by Pytorch dataloader
+                    s_i, reward, s_prime = context['algorithm'].deformat(batch)
 
-                # Device context
-                s_i, reward, s_prime = [device(s) for s in s_i], device(reward), [device(s) for s in s_prime]
+                    # Device context
+                    s_i, reward, s_prime = [device(s) for s in s_i], device(reward), [device(s) for s in s_prime]
 
-                if len(s_prime) > 0:
-                    # Bootstrapping Value Evaluation
-                    context['value_function'].eval()
-                    reward += context['value_function'](*s_prime).flatten().detach()
+                    if len(s_prime) > 0:
+                        # Bootstrapping Value Evaluation
+                        context['value_function'].eval()
+                        reward += context['value_function'](*s_prime).flatten().detach()
 
-                # Current State evaluation and back propagation
-                context['value_function'].train()
-                output = context['value_function'](*s_i)
-                context['optimizer'].zero_grad()
-                loss = context['loss'](output, reward)
-                loss.backward()
-                context['optimizer'].step()
+                    # Current State evaluation and back propagation
+                    context['value_function'].train()
+                    output = context['value_function'](*s_i)
+                    context['optimizer'].zero_grad()
+                    loss = context['loss'](output, reward/100)
+                    loss.backward()
+                    context['optimizer'].step()
 
-                # Statistics
-                partialEpoch = epoch + batch_idx / len(context['dataloader'])
-                nProcessed += len(reward)
-                self.logger.info(
-                    'Epoch: {:.2f} [{}/{} ({:.0f}%)], Loss: {:.6f}, Device: {}'.format(
-                        partialEpoch, nProcessed, len(context['dataloader'].dataset),
-                        100. * batch_idx / len(context['dataloader']),
-                        loss.item(), device)
-                )
+                    # Statistics
+                    partialEpoch = epoch + batch_idx / len(context['dataloader'])
+                    nProcessed += len(reward)
+                    self.logger.info(
+                        'Epoch: {:.2f} [{}/{} ({:.0f}%)], Loss: {:.6f}, Device: {}'.format(
+                            partialEpoch, nProcessed, len(context['dataloader'].dataset),
+                            100. * batch_idx / len(context['dataloader']),
+                            loss.item(), device)
+                    )
 
     @staticmethod
     def init_training_contexts(agent, data_files):
@@ -121,6 +128,7 @@ class Train(Job):
                     context = {}
                     dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
                     context['optimizer'] = agent.optimizers[i]
+                    context['scheduler'] = agent.scheduler[i]
                     context['dataloader'] = dataloader
                     context['value_function'] = value_function
                     context['loss'] = loss
