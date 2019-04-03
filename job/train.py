@@ -99,7 +99,7 @@ class Train(Job):
                     context['value_function'].train()
                     output = context['value_function'](*s_i)
                     context['optimizer'].zero_grad()
-                    loss = context['loss'](output, reward/100)
+                    loss = context['loss'](output, reward)
                     loss.backward()
                     context['optimizer'].step()
 
