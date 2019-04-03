@@ -23,10 +23,9 @@ class LSTM(ValueFunction):
         # Logistic Regression
         self.clf = nn.Sequential(
             nn.Linear(104+52, 52),
-            nn.ReLU(True),
+            nn.ReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
-            nn.ReLU(True),
         )
         # Before applying weights
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
@@ -79,16 +78,15 @@ class SimpleLSTM(ValueFunction):
         # Logistic Regression
         self.clf = nn.Sequential(
             nn.Linear(104, 52),
-            nn.ReLU(True),
+            nn.ReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
-            nn.ReLU(True),
         )
         # Before applying weights
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
         self.apply(self.weights_init)
 
-    def forward(self, x):
+    def forward(self, x, discarded=None):
         # out = self.pad(x.transpose(1, 2)).transpose(1, 2)
         out2 = self.conv2(x.unsqueeze(1)).sum(dim=-1)
         out3 = self.conv3(x.unsqueeze(1)).sum(dim=-1)

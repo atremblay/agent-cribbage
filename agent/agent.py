@@ -80,19 +80,12 @@ class Agent:
 
     def save_checkpoint(self, checkpoint_file, epoch):
         model_state_dict = []
-        optimizer_state_dict = []
-        for v, o in zip(self.value_functions, self.optimizers):
+        for v in self.value_functions:
             model_state_dict.append(v.state_dict())
-
-            if o is not None:
-                optimizer_state_dict.append(o.state_dict())
-            else:
-                optimizer_state_dict.append(o)
 
         torch.save({
             'epoch': epoch,
             'model_state_dict': model_state_dict,
-            'optimizer_state_dict': optimizer_state_dict,
         }, checkpoint_file)
 
     @property

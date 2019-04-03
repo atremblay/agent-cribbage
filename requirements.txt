@@ -3,3 +3,6 @@ gym
 torchvision
 pyyaml
 matplotlib
+tqdm
+poutyne
+sklearn

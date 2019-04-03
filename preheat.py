@@ -138,7 +138,7 @@ def train_conv(args):
     )
 
     torch.save(
-        conv.state_dict(),
+        {'model_state_dict': [conv.state_dict()], 'epoch': args.epoch},
         os.path.join(args.save / 'conv.pkl')
     )
 
@@ -221,7 +221,7 @@ def train_lstm(args):
             break
 
     torch.save(
-        lstm.state_dict(),
+        {'model_state_dict': [lstm.state_dict()], 'epoch': args.epoch},
         os.path.join(args.save / 'lstm.pkl')
     )
 

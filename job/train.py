@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import os
 import shutil
 from datetime import datetime
-
+import copy
 
 @register
 class Train(Job):
@@ -32,6 +32,7 @@ class Train(Job):
         self.parser.add_argument("--dataepochs2keep", default=1, type=int)
         self.parser.add_argument("--checkpoint_period", default=10, type=int)
         self.parser.add_argument("--checkpoint_dir", default='./', type=str)
+        self.parser.add_argument("--spin", default=1, type=int)
 
     def job(self):
 
@@ -80,7 +81,10 @@ class Train(Job):
 
         for context in training_contexts:
 
-            for _ in range(self['number_games']):
+            old_value_function = copy.deepcopy(context['value_function'])
+            old_value_function.eval()
+
+            for i in range(self['spin']):
                 nProcessed = 0
                 for batch_idx, batch in enumerate(context['dataloader']):
 
@@ -92,14 +96,13 @@ class Train(Job):
 
                     if len(s_prime) > 0:
                         # Bootstrapping Value Evaluation
-                        context['value_function'].eval()
-                        reward += context['value_function'](*s_prime).flatten().detach()
+                        reward += old_value_function(*s_prime).flatten().detach()
 
                     # Current State evaluation and back propagation
                     context['value_function'].train()
                     output = context['value_function'](*s_i)
                     context['optimizer'].zero_grad()
-                    loss = context['loss'](output, reward)
+                    loss = context['loss'](output.squeeze(), reward)
                     loss.backward()
                     context['optimizer'].step()
 
@@ -126,7 +129,7 @@ class Train(Job):
 
                 for dataset in algorithm.datasets.values():
                     context = {}
-                    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
+                    dataloader = DataLoader(dataset, batch_size=20, shuffle=True, num_workers=0)
                     context['optimizer'] = agent.optimizers[i]
                     context['scheduler'] = agent.scheduler[i]
                     context['dataloader'] = dataloader

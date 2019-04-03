@@ -1,6 +1,7 @@
 from .algorithm import Algorithm
 from .register import register
 import numpy as np
+from gym_cribbage.envs.cribbage_env import evaluate_cards, Card, Stack, RANKS, SUITS
 
 
 @register
@@ -20,9 +21,15 @@ class TD0Phase0(Algorithm):
                 if hand in file_data['data'][2]:
                     reward_phase2 = file_data['data'][2][hand][0][1]
 
+                    sample = hand_data[0][0][0][0][hand_data[0][0][1]]
                     # If all phase are there for current hand we store data
                     G = reward_phase0+reward_phase1+reward_phase2
-                    sample = hand_data[0][0][0][0][hand_data[0][0][1]]
+                    # myStack = Stack()
+                    # for card_idx in range(sample.shape[-1]):
+                    #     suit_rank_idx = np.argwhere(sample[:,:,card_idx]==True)[0]
+                    #     myStack.add_(Card(RANKS[suit_rank_idx[1]], SUITS[suit_rank_idx[0]]))
+                    # G = evaluate_cards(myStack)
+
                     data.append([sample, np.float32(G)])
 
         return {'Dataset': data}
