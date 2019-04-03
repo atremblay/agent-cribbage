@@ -6,8 +6,8 @@ Agents:
         - {class: Conv, kwargs: {}}
         - {class: SimpleLSTM, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.0005}}
-        - {class: Adam, kwargs: {lr: 0.0005}}
+        - {class: SGD, kwargs: {lr: 0.001}}
+        - {class: SGD, kwargs: {lr: 0.001}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}

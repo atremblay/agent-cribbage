@@ -18,6 +18,7 @@ class Agent:
         self.algorithms = algorithms
         self.optimizers_define = optimizers
         self.optimizers = []
+        self.scheduler = []
         self.choose_phase = [getattr(self, p['callback']['name']) for p in policies]
         self.choose_phase_kwargs = [p['callback']['kwargs'] for p in policies]
 
@@ -72,11 +73,8 @@ class Agent:
     def load_checkpoint(self, checkpoint_file):
         checkpoint = torch.load(checkpoint_file)
         self.init_optimizer()
-        for v, v_state, o, o_state in zip(self.value_functions, checkpoint['model_state_dict'],
-                                          self.optimizers, checkpoint['optimizer_state_dict']):
+        for v, v_state in zip(self.value_functions, checkpoint['model_state_dict']):
             v.load_state_dict(v_state)
-            if o is not None:
-                o.load_state_dict(o_state)
 
         return checkpoint['epoch']
 
@@ -104,9 +102,13 @@ class Agent:
     def init_optimizer(self):
         for i, o in enumerate(self.optimizers_define):
             if self.value_functions[i].need_training:
-                self.optimizers.append(getattr(torch.optim, o['class'])(self.value_functions[i].parameters(), **o['kwargs']))
+                opt = getattr(torch.optim, o['class'])(self.value_functions[i].parameters(), **o['kwargs'])
+                scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.995)
+                self.optimizers.append(opt)
+                self.scheduler.append(scheduler)
             else:
                 self.optimizers.append(None)
+                self.scheduler.append(None)
 
     def choose(self, state, env):
         return self.choose_phase[env.phase](state, env, **self.choose_phase_kwargs[env.phase])

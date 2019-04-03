@@ -4,10 +4,10 @@ Agents:
     kwargs:
       value_functions:
         - {class: EvalCards, kwargs: {}}
-        - {class: LSTM, kwargs: {}}
+        - {class: SimpleLSTM, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.0001}}
-        - {class: Adam, kwargs: {lr: 0.0001}}
+        - {class: Adam, kwargs: {lr: 0.01}}
+        - {class: Adam, kwargs: {lr: 0.01}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}
