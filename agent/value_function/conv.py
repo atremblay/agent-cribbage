@@ -91,7 +91,7 @@ class Conv(ValueFunction):
     @staticmethod
     def stack_to_numpy(stacks, dealer=None):
         stacks = stack_to_numpy(stacks)
-        if len(stacks) != len(dealer):
+        if dealer is not None and len(stacks) != len(dealer):
             raise ValueError("stacks and dealer must be of same length")
 
         if dealer is None:
