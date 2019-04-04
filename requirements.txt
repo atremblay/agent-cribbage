@@ -1,4 +1,8 @@
 gym
--e git://github.com/atremblay/gym-cribbage.git@0be4c12af07da5bf181e4e87c6db99db68638b43#egg=gym-cribbage
+-e git://github.com/atremblay/gym-cribbage.git@9b7e67f54c346aba05234ec244b9db49d80809bc#egg=gym-cribbage
 torchvision
 pyyaml
+matplotlib
+tqdm
+poutyne
+sklearn

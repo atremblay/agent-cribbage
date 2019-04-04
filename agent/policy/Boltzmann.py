@@ -10,8 +10,8 @@ class Boltzmann(Policy):
         super(Boltzmann).__init__()
 
     def prob(self, Q_s):
-        Q_s_Softmax = self.softmax(Q_s, self.tao)
-        return self.ramdom_choice(Q_s_Softmax)
+        Q_s_Softmax = self.softmax(np.array(Q_s))
+        return int(self.random_choice(Q_s_Softmax))
 
     def softmax(self, x, axis=None):
         "Stable definition of Softmax"

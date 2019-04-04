@@ -1,0 +1,33 @@
+Agents:
+  - number: 1
+    file:
+    kwargs:
+      value_functions:
+        - {class: Conv, kwargs: {}}
+        - {class: LSTM, kwargs: {}}
+      optimizers: []
+      algorithms:
+        - {class: TD0Phase0, kwargs: {}}
+        - {class: TD0Phase1, kwargs: {}}
+      policies:
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.05},
+           callback: {name: choose_phase0, kwargs: {}}}
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.05},
+           callback: {name: choose_phase1, kwargs: {}}}
+  - number: 1
+    file:
+    kwargs:
+      value_functions:
+        - {class: FFW, kwargs: {}}
+        - {class: LSTM, kwargs: {}}
+      optimizers:
+      algorithms:
+      policies:
+        - {class: Random,
+           kwargs: {},
+           callback: {name: choose_random, kwargs:{}}}
+        - {class: Random,
+           kwargs: {},
+           callback: {name: choose_random, kwargs:{}}}

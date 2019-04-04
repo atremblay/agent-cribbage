@@ -1,18 +1,25 @@
 import torch.nn as nn
 import torch
+from utils.device import device
 
 
 class ValueFunction(nn.Module):
+    def __init__(self):
+        """
+        """
+        super().__init__()
+        self.need_training = True
+
     @staticmethod
     def weights_init(m):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
             nn.init.xavier_uniform_(m.weight)
-            m.bias.data.zero_()
+            #m.bias.data.zero_()
 
     def update(self, batch):
         pass
 
     def evaluate(self, xs):
         self.eval()
-        xs = [torch.tensor(x, dtype=torch.float) for x in xs]
+        xs = [device(torch.tensor(x, dtype=torch.float)) for x in xs]
         return self.forward(*xs)

@@ -9,6 +9,15 @@ _FILE_HANDLER_CLASSES = [
         'logging.handlers.TimedRotatingFileHandler'
 ]
 
+def add_human_logger():
+    Human_LEVELV_NUM = 100
+    logging.addLevelName(Human_LEVELV_NUM, "HUMAN")
+
+    def human(self, message, *args, **kws):
+        pass
+
+    logging.Logger.human = human
+
 def setup_logging(execution_data_folder_path, configFilePath='./logger_toolbox/logging.yaml',
                   defaultLevel=logging.INFO,
                   envKey='LOG_CFG'):
@@ -20,6 +29,8 @@ def setup_logging(execution_data_folder_path, configFilePath='./logger_toolbox/l
         configFilePath = os.getenv(envKey, None)
 
     if os.path.exists(configFilePath):
+        add_human_logger()
+
         with open(configFilePath, 'rt') as file:
             config = yaml.safe_load(file.read())
         _prepend_folder_path_to_file_handler(config, execution_data_folder_path)
@@ -50,13 +61,8 @@ def _prepend_pid_to_file_handler(config):
             fileExtension = os.path.splitext(fileName)[1]
 
             newFileName = 'pid{}_{}{}'.format(str(os.getpid()), fileNameWithoutExtension, fileExtension)
-            newFolderPath = os.path.join(folderPath, 'pid'+str(os.getpid()))
+            newFolderPath = folderPath
             newFilePath = os.path.join(newFolderPath, newFileName)
-
-            try:
-                os.makedirs(newFolderPath)
-            except FileExistsError: # Problem with race condition
-                pass
 
             assert not os.path.exists(newFilePath)
 

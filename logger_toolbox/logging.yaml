@@ -4,12 +4,14 @@ disable_existing_loggers: False
 formatters:
     simple:
         format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    empty:
+        format: "%(message)s"
 
 handlers:
     console:
         class: logging.StreamHandler
         level: INFO
-        formatter: simple
+        formatter: empty
         stream: ext://sys.stdout
 
     debug_file_handler:
@@ -26,6 +28,15 @@ handlers:
         level: INFO
         formatter: simple
         filename: info.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 100
+        encoding: utf8
+
+    human_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: HUMAN
+        formatter: simple
+        filename: human.log
         maxBytes: 10485760 # 10MB
         backupCount: 100
         encoding: utf8

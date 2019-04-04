@@ -1,0 +1,20 @@
+Agents:
+  - number: 2
+    file: ./conv.pkl
+    kwargs:
+      value_functions:
+        - {class: Conv, kwargs: {out_channels: 5}}
+        - {class: EvalPlays, kwargs: {}}
+      optimizers:
+        - {class: SGD, kwargs: {lr: 0.001}}
+        - {class: SGD, kwargs: {lr: 0.001}}
+      algorithms:
+        - {class: TD0Phase0, kwargs: {}}
+        - {class: TD0Phase1, kwargs: {}}
+      policies:
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.05},
+           callback: {name: choose_phase0, kwargs: {}}}
+        - {class: EpsilonGreedy,
+           kwargs: {epsilon: 0.05},
+           callback: {name: choose_phase1, kwargs: {}}}
