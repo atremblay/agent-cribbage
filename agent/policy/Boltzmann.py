@@ -1,6 +1,6 @@
 from .policy import Policy
-import numpy as np
 from .register import register
+import numpy as np
 
 @register
 class Boltzmann(Policy):

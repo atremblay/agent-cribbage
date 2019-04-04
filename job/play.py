@@ -1,7 +1,7 @@
 from .job import Job
+from .register import register
 import gym
 import gym_cribbage
-from .register import register
 
 
 @register

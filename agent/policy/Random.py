@@ -1,6 +1,6 @@
 from .policy import Policy
-import random
 from .register import register
+import random
 
 
 @register

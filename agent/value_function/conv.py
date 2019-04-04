@@ -1,11 +1,11 @@
-from .value_function import ValueFunction
-import torch.nn as nn
 from .register import register
-import torch
-from pathlib import Path
-import os
-import numpy as np
+from .value_function import ValueFunction
 from gym_cribbage.envs.cribbage_env import Stack, RANKS, SUITS
+from pathlib import Path
+import numpy as np
+import os
+import torch
+import torch.nn as nn
 
 
 @register

@@ -1,14 +1,14 @@
-import argparse
-from logger_toolbox import setup_logging
-import os
-import getpass
-import sys
-import logging
-import yaml
 from agent.agent import Agent
-import copy
+from logger_toolbox import setup_logging
 from utils.device import device
+import argparse
+import copy
+import getpass
+import logging
+import os
+import sys
 import torch
+import yaml
 
 
 class Job:

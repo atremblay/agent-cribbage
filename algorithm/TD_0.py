@@ -1,7 +1,13 @@
 from .algorithm import Algorithm
 from .register import register
+from gym_cribbage.envs.cribbage_env import (
+    evaluate_cards, 
+    Card, 
+    Stack, 
+    RANKS, 
+    SUITS
+)
 import numpy as np
-from gym_cribbage.envs.cribbage_env import evaluate_cards, Card, Stack, RANKS, SUITS
 
 
 @register

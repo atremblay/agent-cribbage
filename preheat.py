@@ -1,29 +1,27 @@
-
-import os
-import argparse
-from pathlib import Path
+from agent.value_function.conv import Conv
+from agent.value_function.lstm import SimpleLSTM
+from collections import defaultdict
+from functools import reduce
 from gym_cribbage.envs.cribbage_env import (
     Stack,
     Card,
     Deck,
     evaluate_cards,
     evaluate_table,
-    RANKS,
+    RANKS, 
     SUITS
 )
-
-from agent.value_function.conv import Conv
-from agent.value_function.lstm import SimpleLSTM
 from itertools import combinations
-from collections import defaultdict
-import numpy as np
-from scipy.special import comb
-import tqdm
-from functools import reduce
+from pathlib import Path
 from poutyne.framework import Model
 from poutyne.framework.callbacks import EarlyStopping
+from scipy.special import comb
 from sklearn.model_selection import train_test_split
+import argparse
+import numpy as np
+import os
 import torch
+import tqdm
 
 
 def parse_args():

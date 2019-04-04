@@ -1,14 +1,14 @@
 from .job import Job
-from utils.device import device
-from .register import register
 from .play import Play
+from .register import register
 from algorithm.register import registry as algorithm_registry
+from datetime import datetime
 from torch import nn
 from torch.utils.data import DataLoader
+from utils.device import device
+import copy
 import os
 import shutil
-from datetime import datetime
-import copy
 
 @register
 class Train(Job):

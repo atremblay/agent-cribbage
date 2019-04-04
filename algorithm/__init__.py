@@ -1,7 +1,7 @@
-import sys
 from glob import glob
 from os.path import basename, dirname, join, commonprefix
 import os
+import sys
 
 pwd = dirname(__file__)
 
