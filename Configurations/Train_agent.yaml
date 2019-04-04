@@ -4,10 +4,10 @@ Agents:
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {}}
-        - {class: SimpleLSTM, kwargs: {}}
+        - {class: LSTM, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.05}}
-        - {class: Adam, kwargs: {lr: 0.05}}
+        - {class: Adam, kwargs: {lr: 0.01}}
+        - {class: Adam, kwargs: {lr: 0.005}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}

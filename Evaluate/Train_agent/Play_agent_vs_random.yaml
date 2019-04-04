@@ -4,7 +4,7 @@ Agents:
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {}}
-        - {class: SimpleLSTM, kwargs: {}}
+        - {class: LSTM, kwargs: {}}
       optimizers: []
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
