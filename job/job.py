@@ -10,6 +10,7 @@ import sys
 import torch
 import yaml
 
+DEFAULT_DIR = os.path.join(os.path.expanduser("~"), "agent_cribbage")
 
 class Job:
     def __init__(self, agent=None):
@@ -18,7 +19,7 @@ class Job:
         self.parser.add_argument('job', type=str)
         self.parser.add_argument('--agent_yaml', type=str, default=None)
         self.parser.add_argument('--cuda', default=False, action='store_true')
-        self.parser.add_argument('--save', type=str, default='/home/execution')
+        self.parser.add_argument('--save', type=str, default=DEFAULT_DIR)
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
         self.agents = agent
