@@ -1,13 +1,13 @@
 import argparse
-from logger_toolbox import setup_logging
+from ..logger_toolbox import setup_logging
 import os
 import getpass
 import sys
 import logging
 import yaml
-from agent.agent import Agent
+from ..agent.agent import Agent
 import copy
-from utils.device import device
+from ..utils.device import device
 import torch
 
 

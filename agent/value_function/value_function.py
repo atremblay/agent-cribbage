@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from utils.device import device
+from ...utils.device import device
 
 
 class ValueFunction(nn.Module):

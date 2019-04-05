@@ -1,8 +1,8 @@
 from .job import Job
-from utils.device import device
+from ..utils.device import device
 from .register import register
 from .play import Play
-from algorithm.register import registry as algorithm_registry
+from ..algorithm.register import registry as algorithm_registry
 from torch import nn
 from torch.utils.data import DataLoader
 import os
