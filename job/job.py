@@ -1,14 +1,16 @@
 import argparse
-from ..logger_toolbox import setup_logging
-import os
-import getpass
-import sys
-import logging
-import yaml
-from ..agent.agent import Agent
 import copy
-from ..utils.device import device
+import getpass
+import logging
+import os
+import sys
+
 import torch
+import yaml
+
+from ..agent.agent import Agent
+from ..logger_toolbox import setup_logging
+from ..utils.device import device
 
 
 class Job:
