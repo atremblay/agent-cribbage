@@ -175,18 +175,8 @@ class Agent:
             return self.human_input(state.hand)
 
         else:
-            hand = np.expand_dims(np.array([c.state for c in state.hand]), axis=1)
 
-            # If has card on the table
-            if len(env.table) != 0:
-                table_cards = np.expand_dims(np.array([card.state for card in env.table]), 0)
-                table_cards_repeated = np.repeat(table_cards, len(state.hand), axis=0)
-                hand = np.append(table_cards_repeated, hand, axis=1)
-
-            # Store state for data generation.
-            after_state = [hand.astype('float32'),
-                           np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0).astype('float32')]
-
+            after_state = self.value_functions[env.phase].get_after_state(state, env)
             idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
             self.store_state(after_state, idx_s_prime)
 

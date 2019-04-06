@@ -31,7 +31,7 @@ class Algorithm(ABC):
 
         return datasets
 
-    def deformat(self, batch):
+    def deformat(self, batch, value_function):
         """ Deformat batch in a list of [s_i, reward, *s_primes]
 
         s_i: List of the current state of where the gradient will be calculated.
@@ -42,6 +42,7 @@ class Algorithm(ABC):
         reward. Otherwise, this method as to be overloaded in the subclass.
 
         :param batch:
+        :param value_function
         :return: [s_i, reward, s_primes]
         """
         return [batch[0]], batch[1], []

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import inspect
 from ...utils.device import device
 
 
@@ -10,6 +10,7 @@ class ValueFunction(nn.Module):
         """
         super().__init__()
         self.need_training = True
+        self.forward_arg_size = len(inspect.signature(self.forward).parameters)
 
     @staticmethod
     def weights_init(m):

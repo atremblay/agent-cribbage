@@ -89,7 +89,7 @@ class Train(Job):
                 for batch_idx, batch in enumerate(context['dataloader']):
 
                     # Deformat data batch produced by Pytorch dataloader
-                    s_i, reward, s_prime = context['algorithm'].deformat(batch)
+                    s_i, reward, s_prime = context['algorithm'].deformat(batch, context['value_function'])
 
                     # Device context
                     s_i, reward, s_prime = [device(s) for s in s_i], device(reward), [device(s) for s in s_prime]
