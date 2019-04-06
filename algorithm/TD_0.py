@@ -71,5 +71,5 @@ class TD0Phase1(Algorithm):
 
         return datasets
 
-    def deformat(self, batch):
-        return batch[:2], batch[2], batch[3:]
+    def deformat(self, batch, value_function):
+        return batch[:value_function.forward_arg_size], batch[value_function.forward_arg_size], batch[value_function.forward_arg_size+1:]

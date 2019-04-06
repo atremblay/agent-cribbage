@@ -11,7 +11,7 @@ import torch
 
 
 class Agent:
-    def __init__(self, policies, value_functions, optimizers, algorithms):
+    def __init__(self, policies, value_functions, optimizers, algorithms, training_settings=None):
 
         self.policies = [policy_registry[p['class']](**p['kwargs']) for p in policies]
         self.value_functions = [value_function_registry[v['class']](**v['kwargs']) for v in value_functions]
@@ -21,6 +21,7 @@ class Agent:
         self.scheduler = []
         self.choose_phase = [getattr(self, p['callback']['name']) for p in policies]
         self.choose_phase_kwargs = [p['callback']['kwargs'] for p in policies]
+        self.training_settings = training_settings
 
         self.cards_2_drop_phase0 = []
         self.reset()

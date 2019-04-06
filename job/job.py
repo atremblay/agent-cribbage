@@ -19,7 +19,7 @@ class Job:
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
         self.parser.add_argument('--agent_yaml', type=str, default=None)
-        self.parser.add_argument('--cuda', default=False, action='store_true')
+        self.parser.add_argument('--cuda', default=-1, type=int, help="Cuda device to use (-1 = Cuda disabled)")
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
@@ -111,9 +111,12 @@ class Job:
 
     def resolve_cuda(self):
 
-        device.isCuda = self.args.cuda
+        if self.args.cuda == -1:
+            device.isCuda = False
+        else:
+            device.isCuda = True
 
         if device.isCuda and not torch.cuda.is_available():
             print("CUDA not available on your machine. Setting it back to False")
-            self.args.cuda = False
+            self.args.cuda = -1
             device.isCuda = False
