@@ -1,9 +1,9 @@
-from .value_function import ValueFunction
-import torch.nn as nn
 from .register import register
-import torch
+from .value_function import ValueFunction
 from gym_cribbage.envs.cribbage_env import Stack, RANKS, SUITS
 import numpy as np
+import torch
+import torch.nn as nn
 
 
 @register

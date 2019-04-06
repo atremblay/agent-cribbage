@@ -14,7 +14,6 @@ class ValueFunction(nn.Module):
     def weights_init(m):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
             nn.init.xavier_uniform_(m.weight)
-            #m.bias.data.zero_()
 
     def update(self, batch):
         pass

@@ -1,7 +1,7 @@
 from .policy import Policy
-import random
-import numpy as np
 from .register import register
+import numpy as np
+import random
 
 
 @register

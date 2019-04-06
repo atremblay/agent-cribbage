@@ -1,5 +1,5 @@
-from .value_function import ValueFunction
 from .register import register
+from .value_function import ValueFunction
 from gym_cribbage.envs.cribbage_env import evaluate_table, Card, Stack
 import numpy as np
 import torch

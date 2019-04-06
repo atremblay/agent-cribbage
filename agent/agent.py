@@ -1,12 +1,12 @@
 from .policy.register import registry as policy_registry
 from .value_function.register import registry as value_function_registry
-from itertools import combinations
 from gym_cribbage.envs.cribbage_env import Stack, evaluate_cards
-import numpy as np
-import pickle
-import os
-import logging
+from itertools import combinations
 import copy
+import logging
+import numpy as np
+import os
+import pickle
 import torch
 
 

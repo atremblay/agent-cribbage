@@ -1,6 +1,6 @@
+from abc import ABC, abstractmethod
 from torch.utils.data import Dataset
 import pickle
-from abc import ABC, abstractmethod
 
 
 class Algorithm(ABC):
