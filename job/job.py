@@ -19,7 +19,7 @@ class Job:
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
         self.parser.add_argument('--agent_yaml', type=str, default=None)
-        self.parser.add_argument('--cuda', default=-1, type=int, help="Cuda device to use (-1 = Cuda disabled)")
+        self.parser.add_argument('--cuda', default=0, type=int, help="Cuda device to use (-1 = Cuda disabled)")
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
@@ -84,9 +84,9 @@ class Job:
             for shared_agent in config['Agents']:
                 agent = Agent(**shared_agent['kwargs'])
 
-                if self['cuda']:
-                    for v in agent.value_functions:
-                        v.cuda()
+                # Cudaize models
+                for v in agent.value_functions:
+                    v.cuda(self['cuda'])
 
                 if shared_agent['file'] is not None:
                     self['epoch_start'] = agent.load_checkpoint(shared_agent['file'])

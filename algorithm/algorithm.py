@@ -45,7 +45,7 @@ class Algorithm(ABC):
         :param value_function
         :return: [s_i, reward, s_primes]
         """
-        return [batch[0]], batch[1], []
+        return batch[:value_function.forward_arg_size], batch[value_function.forward_arg_size], []
 
     @abstractmethod
     def _preprocess_file(self, file_data):

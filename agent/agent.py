@@ -4,7 +4,6 @@ from gym_cribbage.envs.cribbage_env import Stack, evaluate_cards
 from itertools import combinations
 import copy
 import logging
-import numpy as np
 import os
 import pickle
 import torch
@@ -153,7 +152,7 @@ class Agent:
                 # Unique 4 cards permutations (Good for all numbers of players)
                 s_prime_combinations = [Stack(c) for c in combinations(state.hand, 4)]
                 # Convert stack to numpy
-                after_state = self.value_functions[env.phase].stack_and_state_to_numpy(s_prime_combinations, state, env)
+                after_state = self.value_functions[env.phase].get_after_state(s_prime_combinations, state, env)
 
                 # Store state for data generation.
                 idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])

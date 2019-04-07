@@ -59,7 +59,7 @@ class LSTM(ValueFunction):
 
 
 @register
-class SimpleLSTM(ValueFunction):
+class ConvLstm(ValueFunction):
     def __init__(self):
         """
         Simple LSTM that only takes the cards face up. We do not include
@@ -116,7 +116,6 @@ class SimpleLSTM(ValueFunction):
         out, (hidden, cell) = self.lstm(out)
         out = out[:, -1, :]  # Only keeps last value of sequence
         out = self.clf(torch.cat((out, discarded, hand), dim=1))
-        out = self.clf(out)
         return out
 
     @staticmethod
@@ -135,18 +134,14 @@ class SimpleLSTM(ValueFunction):
         return x
 
     def get_after_state(self, state, env):
-        choices = np.expand_dims(np.array([c.state for c in state.hand]), axis=1)
+        choices = [env.table.add(c) for c in state.hand]
 
-        # If has card on the table
-        if len(env.table) != 0:
-            table_cards = np.expand_dims(np.array([card.state for card in env.table]), 0)
-            table_cards_repeated = np.repeat(table_cards, len(state.hand), axis=0)
-            choices = np.append(table_cards_repeated, choices, axis=1)
+        choices = self.stack_to_numpy(choices)
 
         hand = np.array([state.hand.remove(c).compact_state[1].sum(axis=1) for c in state.hand])
 
         # Store state for data generation.
-        after_state = [choices.astype('float32'),
+        after_state = [choices,
                        np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0).astype(
                            'float32'),
                        hand]

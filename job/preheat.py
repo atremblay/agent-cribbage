@@ -1,5 +1,5 @@
 from ..agent.value_function.conv import Conv
-from ..agent.value_function.lstm import SimpleLSTM
+from ..agent.value_function.lstm import ConvLstm
 from .job import Job
 from .register import register
 from gym_cribbage.envs.cribbage_env import (
@@ -132,7 +132,7 @@ def train_conv(args):
 
 
 def train_lstm(args):
-    lstm = SimpleLSTM()
+    lstm = ConvLstm()
     model = Model(
         lstm,
         torch.optim.SGD(
@@ -188,7 +188,7 @@ def train_lstm(args):
                 i += 1
 
         history = model.fit(
-            SimpleLSTM.stack_to_numpy(stacks), values,
+            ConvLstm.stack_to_numpy(stacks), values,
             # epochs=1,
             batch_size=args.batch_size,
             callbacks=[
@@ -201,7 +201,7 @@ def train_lstm(args):
             # verbose=0
         )
         pred = model.predict(
-            SimpleLSTM.stack_to_numpy([base_hand1, base_hand2])
+            ConvLstm.stack_to_numpy([base_hand1, base_hand2])
         )
         print(f"Simulation {simluation}, loss {history[-1]['loss']:.6f} {base_hand1} {pred[0, 0]:.6f}  {base_hand2}  {pred[1, 0]:.6f}")
         simluation += 1

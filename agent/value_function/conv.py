@@ -15,6 +15,8 @@ class Conv(ValueFunction):
         """
         super().__init__()
         self.with_dealer = with_dealer
+        if not self.with_dealer:
+            self.forward_arg_size -= 1
         self.tarot2 = nn.Sequential(
             nn.Conv1d(
                 in_channels=1,
@@ -89,27 +91,15 @@ class Conv(ValueFunction):
             return torch.tensor(s), torch.tensor(d)
 
     @staticmethod
-    def stack_to_numpy(stacks, dealer=None):
-        stacks = stack_to_numpy(stacks)
-        if dealer is not None and len(stacks) != len(dealer):
-            raise ValueError("stacks and dealer must be of same length")
-
-        if dealer is None:
-            return stacks
-        else:
-            dealer = np.array(dealer, dtype=np.float32)
-            if len(dealer.shape) == 1:
-                # Need to unsqueeze last dim
-                dealer = dealer[:, None]
-            return stacks, dealer
-
-    @staticmethod
     def stack_and_state_to_tensor(stacks, state=None, env=None):
         return [torch.tensor(stack_to_numpy(stacks))]
 
-    @staticmethod
-    def stack_and_state_to_numpy(stacks, state=None, env=None):
-        return [stack_to_numpy(stacks)]
+    def get_after_state(self, stacks, state=None, env=None):
+        s = stack_to_numpy(stacks)
+        if self.with_dealer:
+            return s, np.array([env.dealer == state.hand_id for _ in stacks], dtype='float32')[:, None]
+        else:
+            return s,
 
     def forward(self, x_tarot, dealer=None):
         if self.with_dealer and dealer is None:
