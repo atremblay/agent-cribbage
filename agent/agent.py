@@ -74,7 +74,8 @@ class Agent:
         checkpoint = torch.load(checkpoint_file)
         self.init_optimizer()
         for v, v_state in zip(self.value_functions, checkpoint['model_state_dict']):
-            v.load_state_dict(v_state)
+            if v_state is not None:
+                v.load_state_dict(v_state)
 
         return checkpoint['epoch']
 
