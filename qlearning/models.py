@@ -2,20 +2,20 @@ import torch.nn as nn
 
 class Linear(nn.Module):
     def __init__(self, num_in, num_out, layers):
-        super(MLP, self).__init__()
+        super(Linear, self).__init__()
 
         assert isinstance(layers, list)
 
         # Constructs an n-layer architecture.
         arch = []
-        for i in range(len(layers)):
+        for i in range(len(layers)+1):
             # First layer of network.
             if i == 0:
                 arch.append(nn.Linear(num_in, layers[i]))
 
             # Final layer of network.
-            elif i == len(layers)-1:
-                arch.append(nn.Linear(layers[i], num_out))
+            elif i == len(layers):
+                arch.append(nn.Linear(layers[i-1], num_out))
 
             # Intermediate layers of network.
             else:
@@ -23,9 +23,9 @@ class Linear(nn.Module):
 
             # Activation & BatchNorm for all layers except the last.
             if i != len(layers)-1:
-                arch.extend([nn.ReLU(), nn.BatchNorm1d(layers[i])])
+                arch.append(nn.LeakyReLU())
 
-        self.mlp = nn.Sequential(*arch)
+        self.linear = nn.Sequential(*arch)
                 
     def forward(self, X):
-        return self.mlp(X)
+        return self.linear(X)

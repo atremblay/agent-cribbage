@@ -21,42 +21,10 @@ EPS_DECAY = 200
 TARGET_UPDATE = 10
 REPLAY = 10000
 GAMMA = 1
+BATCH_SIZE = 32
 
 Transition = namedtuple('Transition',
-    ('state', 'action', 'next_state', 'reward'))
-
-# class FeatRepDataset(data.Dataset):
-#     """
-#     This is a class working with Feature Representation of cards.
-#     Inputs is 13*12, reprensenting 12 cards (1 to 13). 0-4 Hand, 5-12 Table
-#     Target is the max reward in this setting
-#
-#     Returns a sample (input) and a targeted value (target).
-#     """
-#
-#     def __init__(self, d, t):
-#         self.d = d
-#         self.t = t
-#
-#     def __len__(self):
-#         "Total number of samples."
-#         return len(self.t)
-#
-#     def __getitem__(self, index):
-#         "Generate one sample of data."
-#         return self.d[:,index], self.t[index]
-
-#def to_card(data_mat):
-#    """ Function just to see human way of hand """
-#
-#    cards = []
-#    for i in range(12):
-#        c = (data_mat[i*13:i*13+13]).nonzero()+1
-#        if c.nelement() != 0: c = c[0].item()
-#        else: c = 0
-#        cards.append(c)
-#
-#    return cards
+    ('state', 'action', 'next_state', 'reward', 'hand'))
 
 
 class ReplayMemory(object):
@@ -82,7 +50,8 @@ class ReplayMemory(object):
 
 class QLearner(object):
 
-    def __init__(self, in_dim, out_dim, layers, lr=0.01, device='cpu'):
+    def __init__(self, in_dim, out_dim, layers, 
+                       compact=False, lr=0.01, device='cpu'):
         """Init policy network, target network, and optimizer."""
 
         assert isinstance(layers, list)
@@ -99,11 +68,13 @@ class QLearner(object):
 
         self.criterion = nn.SmoothL1Loss()  # Huber Loss
 
+        self.compact = compact  # Determines how cards are represented.
+
         self.memory = ReplayMemory(REPLAY)
 
         self.steps = 0
 
-    def get_actions(cards, environment, n=1):
+    def get_actions(self, cards, environment, n=1):
         """
         Tests the value of each card in cards. Takes the top n cards in
         sequence, using a given policy.
@@ -112,7 +83,15 @@ class QLearner(object):
         values = np.zeros(len(cards))
 
         for i, card in enumerate(cards):
-            values[i] = self.policy(card+environment)
+
+            # Compact = 13, no suits. Full = 52.
+            if self.compact:
+                card_state = card.compact_state[1]
+            else:
+                card_state = card.state
+
+            policy_input = torch.Tensor(np.hstack((card_state, environment)))
+            values[i] = self.policy(policy_input.unsqueeze(0))
 
         for i in range(n):
             action = self.e_greedy(values)
@@ -121,7 +100,7 @@ class QLearner(object):
 
         return(actions)
 
-    def e_greedy(values):
+    def e_greedy(self, values):
         """
         1-EPS of the time, returns the argmax. Else, random. EPS decays
         over time.
@@ -133,12 +112,13 @@ class QLearner(object):
 
         if sample > threshold:
             # Greedy action.
-            return(np.argmax(values))
+            return(int(np.argmax(values).astype(np.int)))
         else:
-            # Random action.
-            return(np.where(values == np.random.selection(values))[0])
+            # Random action, only considering finite values.
+            sample = np.random.choice(values[np.isfinite(values)])
+            return(int(np.where(values == sample)[0][0]))
 
-    def optimize():
+    def optimize(self):
         if len(self.memory) < BATCH_SIZE:
             return
 
@@ -148,33 +128,53 @@ class QLearner(object):
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
-        s_batch = torch.cat(batch.state)
-        a_batch = torch.cat(batch.action)
-        r_batch = torch.cat(batch.reward)
-        s_prime_batch = torch.cat(batch.next_state)
 
         # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        #non_final_mask = torch.tensor(
-        #    tuple(map(lambda s: s is not None, batch.next_state)),
-        #        device=device, dtype=torch.uint8)
-        #non_final_next_states = torch.cat([s for s in batch.next_state
-        #                                            if s is not None])
+        # (a fial state would've been the one after which simulation ended)       
+        non_final_mask = torch.tensor(
+            tuple(map(lambda s: s is not None, batch.next_state)),
+                device=DEVICE, dtype=torch.uint8)
+
+        if torch.sum(non_final_mask) > 0:
+            s_prime_batch = torch.stack([s for s in batch.next_state
+                                            if s is not None], dim=1)
+        else:
+            s_prime_batch = None
+
+        # Get states, actions, and rewards.
+        s_batch = torch.stack(batch.state, dim=1)
+        a_batch = torch.stack(batch.action, dim=1)
+        r_batch = torch.stack(batch.reward)
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken. These are the actions which would've been taken
-        # for each batch state according to policy_net
-        state_action_values = self.policy(s_batch).gather(1, a_batch)
+        # columns of actions taken. These are the actions which would've been 
+        # taken for each batch state according to policy_net.
+        state_action_values = self.policy(
+            torch.cat([s_batch, a_batch]).t().float())
 
-        # Compute V(s_{t+1}) for all next states.
+        # Compute V(s_{t+1}) for all next states. Final states get 0.
         # Expected values of actions for non_final_next_states are computed
-        # based on the older target network; selecting their best reward with
-        # max(1)[0].
-        #next_state_values = torch.zeros(BATCH_SIZE, device=device)
-        next_state_values = self.target(s_prime_batch).max(1)[0].detach()
+        # based on the older target network.
+        next_state_values = torch.zeros(BATCH_SIZE, device=DEVICE)
+
+        # Loop through batch... TODO: can this be vectorized?
+        for b in range(BATCH_SIZE):
+            if non_final_mask[b] == 0:
+                continue
+
+            # Get the legal cards for this player.
+            hand = batch.hand[b]
+
+            # Take the e-greedy max action.
+            action = self.get_actions(hand, s_prime_batch[:, b].numpy())[0]
+            a_prime = torch.from_numpy(hand[action].compact_state[1]) 
+
+            # Calculate value of s_prime, a_prime for batch b
+            next_state_values[b] = self.target(
+                torch.cat([s_prime_batch[:, b], a_prime]).float()).detach()
 
         # Compute the expected Q values over the decorrelated states.
-        expected_state_action_values = (next_state_values * GAMMA) + r_batch
+        expected_state_action_values = (next_state_values * GAMMA) + r_batch.float()
 
         loss = self.criterion(
             state_action_values, expected_state_action_values.unsqueeze(1))
@@ -182,16 +182,80 @@ class QLearner(object):
         # Optimize the policy model.
         self.optimizer.zero_grad()
         loss.backward()
-        for param in self.policy.parameters():
-            param.grad.data.clamp_(-1, 1)
+
+        # Reward clamping ... maybe not a good idea?
+        #for param in self.policy.parameters():
+        #    param.grad.data.clamp_(-1, 1)
+        #    
         self.optimizer.step()
 
-    def target_update():
+    def target_update(self):
         """Update the target network, copying all weights and biases in DQN."""
         self.target.load_state_dict(self.policy.state_dict())
 
 
-def main():
+def get_deal_env_state(env):
+    """Environment state during the deal/show."""
+
+    # Are you the dealer? yes=1, no=0
+    if env.dealer == env.player:
+        dealer_state = np.ones(1)
+    else:
+        dealer_state = np.zeros(1)
+
+    # What is in your hand? 52
+    hand_state = env.hands[env.player].state
+
+    env_state = np.hstack([dealer_state, hand_state])
+
+    return(env_state)
+
+
+def get_play_env_state(env):
+    """Environment state during the play."""
+    TABLE_LEN = 7*13
+
+    # Hand state out of 52.
+    hand_state = env.hands[env.player].state
+
+    # Sequence of cards on the table: 7*13.
+    if env.table:
+
+        # Add compact state of cards in order they were played.
+        table_state = []
+        for card in env.table:
+            table_state.append(card.compact_state[1])
+        table_state = np.hstack(table_state)
+        
+        # Add trailing zeros if the table isn't full.
+        if len(table_state) < TABLE_LEN:
+            table_state = np.hstack(
+                [table_state, np.zeros(TABLE_LEN-len(table_state))])
+
+    else:
+        table_state = np.zeros(TABLE_LEN)
+
+    env_state = np.hstack([hand_state, table_state])
+
+    return(env_state)
+
+
+def get_deal_actions(env, state, Q_deal):
+    """
+    Given and environment, state, and a policy, select 2 actions.
+
+    Returns an environment state for training Q_deal, and actions_onehot, which
+    is part of the state for Q_play.
+    """
+    env_state = get_deal_env_state(env)
+    actions = Q_deal.get_actions(state.hand, env_state, n=2)
+    actions_onehot = (
+        state.hand[actions[0]].state + state.hand[actions[1]].state)
+
+    return(env_state, actions, actions_onehot)
+
+
+def main(args):
     """
     deal: S = 6 cards in hand, S' full table with total reward (show).
     play: S = this player's turn, S' = This player's next turn.
@@ -203,18 +267,18 @@ def main():
     #valid_loader = data.DataLoader(valid_dataset, batch_size=len(valid_dataset), shuffle=True, **kwargs)
 
     # Create models
-    # Deal: 52*6 + Dealer (1), softmax over 6 cards.
-    # Play: 12*13 (hand=4, table=8), suits do not matter, softmax over 4 cards.
-    Q_deal = QLearner(313, 1, [256, 128, 64], lr=args.lr, device=DEVICE)
-    Q_play = QLearner(156, 1, [128, 64, 32], lr=args.lr, device=DEVICE)
+    # Deal: 53 (env_state) + 52 (proposed card).
+    Q_deal = QLearner(53+52, 1, [128, 64, 32], lr=args.lr, device=DEVICE)
+
+    # Play: 7*13 (table=7) + 52 (hand) + 13 (proposed card) + 52 (2 crib cards).
+    Q_play = QLearner(91+52+13+52, 1, [256, 128, 64, 32], 
+                      compact=True, lr=args.lr, device=DEVICE)
 
     # Init environment.
     env = CribbageEnv()
     state, reward, done, debug = env.reset()
 
     # Keeps track of the states for each player.
-    player_sa_deal = [(), ()]
-    player_sar_play = [(), ()]
 
     t1 = time.time()
 
@@ -223,59 +287,80 @@ def main():
 
     while done_counter < 100:
 
-        player = state.hand_id
-        print(player)
-
         # S=The deal, S'=The show.
         if state.phase == 0:
 
-            # Each player discards two cards to the crib in sequence.
-            # We save as the state each player's hand.
+            # Initialize player-specific states for this hand.
+            hand_sa_deal = [(), ()]
+            hand_sar_play = [(), ()]
+            hand_cribs = [[], []]
+            play_rewards = [0, 0]
 
             # Based on hand, pick two cards to discard.
-            env_state = env.table + env.crib + env.dealer
-            full_state = state.hand.state + env_state
-            p1_actions = Q_deal.get_actions(state.hand.state, env_state, n=2)
-            player_sa_deal[player] = (full_state, p1_actions)
-            state, reward, done, debug = env.step(state.hand[p1_actions[0]])
-
+            env_state, p1_act, p1_crib = get_deal_actions(env, state, Q_deal)
+            hand_sa_deal[state.hand_id] = (env_state, p1_crib)
+            p1_discards = [state.hand[p1_act[0]], state.hand[p1_act[1]]]
+            hand_cribs[0] = p1_crib
+            state, reward, done, debug = env.step(p1_discards[0])
+            
             # Based on hand, pick two cards to discard.
-            player = state.hand_id
-            env_state = env.table + env.crib + env.dealer
-            full_state = state.hand.state + env_state
-            p2_actions = Q_deal.get_actions(state.hand.state, env_state, n=2)
-            player_sa_deal[player] = (full_state, p2_actions)
-            state, reward, done, debug = env.step(state.hand[p2_actions[0]])
+            env_state, p2_act, p2_crib = get_deal_actions(env, state, Q_deal)
+
+            hand_sa_deal[state.hand_id] = (env_state, p2_crib)
+
+            p2_discards = [state.hand[p2_act[0]], state.hand[p2_act[1]]]
+            hand_cribs[1] = p2_crib
+            state, reward, done, debug = env.step(p2_discards[0])
 
             # Each player discards the other card, and the play is done.
-            state, reward, done, debug = env.step(state.hand[p1_actions[1]])
-            s_prime, reward, done, debug = env.step(state.hand[p2_actions[1]])
+            state, reward, done, debug = env.step(p1_discards[1])           
+            s_prime, reward, done, debug = env.step(p2_discards[1])
+
+            # NB: FOR TWO PLAYERS, THE DEAL IS ALWAYS DONE BY NOW.
 
         # The play. S=player A's turn, S'=player A's next turn.
         elif state.phase == 1:
 
+            env_state = get_play_env_state(env)
+            env_state = np.hstack([env_state, hand_cribs[state.hand_id]])
+
             # Save state, action, reward from previous turn, plus current state
             # of the environment.
-            if player_sar_play[player]:
-                s, a, r = player_sar_play[player]
-                Q_play.memory.push(s, a, state, r)
+            if hand_sar_play[state.hand_id]:
+                s, a, r = hand_sar_play[state.hand_id]
+                Q_play.memory.push(
+                    torch.from_numpy(s), 
+                    torch.from_numpy(a), 
+                    torch.from_numpy(env_state), 
+                    torch.from_numpy(np.array(r)),
+                    state.hand)
 
-            action = Q_play.get_actions(state.hand.state, env_state)
-            s_prime, reward, done, debug = env.step(state.hand[action])
-            player_sar_play[player] = (state, action, reward)
+            action = Q_play.get_actions(state.hand, env_state)
+            card_played = state.hand[action[0]]
+            s_prime, reward, done, debug = env.step(card_played)
+
+            # Keep track of accumulated rewards during the play.
+            play_rewards[s_prime.reward_id] += reward
+
+            hand_sar_play[s_prime.reward_id] = (
+                env_state, card_played.compact_state[1], reward)
 
         # The show.
         elif state.phase == 2:
-            import IPython; IPython.embed()
 
             # This agent sees what reward they get during the show.
-            s_prime, reward, done, debug = env.step(Card(RANKS[0], SUITS[0]))
+            s_prime, reward, done, debug = env.step(Card(99, SUITS[0]))
 
-            # Get state, action pair from the play.
-            s, a = player_sa_deal[player]
-            Q_deal.memory.push(s, a, state, reward)
+            total_play_reward = reward + play_rewards[s_prime.reward_id]
 
-            show_state = env.table.state
+            # Get state, action pair from the deal.
+            s, a = hand_sa_deal[state.reward_id]
+            Q_deal.memory.push(
+                torch.from_numpy(s), 
+                torch.from_numpy(a), 
+                None, 
+                torch.from_numpy(np.array(reward)),
+                state.hand)
 
         else:
             raise Exception("state.phase is an illegal value={}".format(
