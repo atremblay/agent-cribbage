@@ -50,7 +50,7 @@ class ReplayMemory(object):
 
 class QLearner(object):
 
-    def __init__(self, in_dim, out_dim, layers, 
+    def __init__(self, in_dim, out_dim, layers,
                        compact=False, lr=0.01, device='cpu'):
         """Init policy network, target network, and optimizer."""
 
@@ -130,7 +130,7 @@ class QLearner(object):
         batch = Transition(*zip(*transitions))
 
         # Compute a mask of non-final states and concatenate the batch elements
-        # (a fial state would've been the one after which simulation ended)       
+        # (a fial state would've been the one after which simulation ended)
         non_final_mask = torch.tensor(
             tuple(map(lambda s: s is not None, batch.next_state)),
                 device=DEVICE, dtype=torch.uint8)
@@ -147,7 +147,7 @@ class QLearner(object):
         r_batch = torch.stack(batch.reward)
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken. These are the actions which would've been 
+        # columns of actions taken. These are the actions which would've been
         # taken for each batch state according to policy_net.
         state_action_values = self.policy(
             torch.cat([s_batch, a_batch]).t().float())
@@ -167,7 +167,7 @@ class QLearner(object):
 
             # Take the e-greedy max action.
             action = self.get_actions(hand, s_prime_batch[:, b].numpy())[0]
-            a_prime = torch.from_numpy(hand[action].compact_state[1]) 
+            a_prime = torch.from_numpy(hand[action].compact_state[1])
 
             # Calculate value of s_prime, a_prime for batch b
             next_state_values[b] = self.target(
@@ -186,7 +186,7 @@ class QLearner(object):
         # Reward clamping ... maybe not a good idea?
         #for param in self.policy.parameters():
         #    param.grad.data.clamp_(-1, 1)
-        #    
+        #
         self.optimizer.step()
 
     def target_update(self):
@@ -226,7 +226,7 @@ def get_play_env_state(env):
         for card in env.table:
             table_state.append(card.compact_state[1])
         table_state = np.hstack(table_state)
-        
+
         # Add trailing zeros if the table isn't full.
         if len(table_state) < TABLE_LEN:
             table_state = np.hstack(
@@ -271,7 +271,7 @@ def main(args):
     Q_deal = QLearner(53+52, 1, [128, 64, 32], lr=args.lr, device=DEVICE)
 
     # Play: 7*13 (table=7) + 52 (hand) + 13 (proposed card) + 52 (2 crib cards).
-    Q_play = QLearner(91+52+13+52, 1, [256, 128, 64, 32], 
+    Q_play = QLearner(91+52+13+52, 1, [256, 128, 64, 32],
                       compact=True, lr=args.lr, device=DEVICE)
 
     # Init environment.
@@ -302,18 +302,16 @@ def main(args):
             p1_discards = [state.hand[p1_act[0]], state.hand[p1_act[1]]]
             hand_cribs[0] = p1_crib
             state, reward, done, debug = env.step(p1_discards[0])
-            
+
             # Based on hand, pick two cards to discard.
             env_state, p2_act, p2_crib = get_deal_actions(env, state, Q_deal)
-
             hand_sa_deal[state.hand_id] = (env_state, p2_crib)
-
             p2_discards = [state.hand[p2_act[0]], state.hand[p2_act[1]]]
             hand_cribs[1] = p2_crib
             state, reward, done, debug = env.step(p2_discards[0])
 
             # Each player discards the other card, and the play is done.
-            state, reward, done, debug = env.step(p1_discards[1])           
+            state, reward, done, debug = env.step(p1_discards[1])
             s_prime, reward, done, debug = env.step(p2_discards[1])
 
             # NB: FOR TWO PLAYERS, THE DEAL IS ALWAYS DONE BY NOW.
@@ -329,9 +327,9 @@ def main(args):
             if hand_sar_play[state.hand_id]:
                 s, a, r = hand_sar_play[state.hand_id]
                 Q_play.memory.push(
-                    torch.from_numpy(s), 
-                    torch.from_numpy(a), 
-                    torch.from_numpy(env_state), 
+                    torch.from_numpy(s),
+                    torch.from_numpy(a),
+                    torch.from_numpy(env_state),
                     torch.from_numpy(np.array(r)),
                     state.hand)
 
@@ -356,9 +354,9 @@ def main(args):
             # Get state, action pair from the deal.
             s, a = hand_sa_deal[state.reward_id]
             Q_deal.memory.push(
-                torch.from_numpy(s), 
-                torch.from_numpy(a), 
-                None, 
+                torch.from_numpy(s),
+                torch.from_numpy(a),
+                None,
                 torch.from_numpy(np.array(reward)),
                 state.hand)
 
@@ -392,7 +390,7 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='TD lambda for Cribbage')
-    parser.add_argument('--lr', type=float, default=0.00001,
+    parser.add_argument('--lr', type=float, default=0.01,
                         help='Learning rate')
     parser.add_argument('--gamma', type=float, default=1,
                         help='discount')
