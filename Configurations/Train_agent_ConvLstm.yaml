@@ -1,20 +1,20 @@
 Agents:
   - number: 2
-    file: ./conv.pkl
+    file: ./Train_agent_ConvLstm_10_102/Train_agent_ConvLstm_102.tar
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {out_channels: 5}}
-        - {class: LSTM, kwargs: {}}
+        - {class: ConvLstm, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.01}}
-        - {class: Adam, kwargs: {lr: 0.005}}
+        - {class: Adam, kwargs: {lr: 5.0e-5}}
+        - {class: Adam, kwargs: {lr: 0.0005}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.05},
+           kwargs: {epsilon: 0.025},
            callback: {name: choose_phase0, kwargs: {}}}
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.05},
+           kwargs: {epsilon: 0.025},
            callback: {name: choose_phase1, kwargs: {}}}

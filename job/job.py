@@ -1,14 +1,16 @@
 import argparse
-from logger_toolbox import setup_logging
-import os
-import getpass
-import sys
-import logging
-import yaml
-from agent.agent import Agent
 import copy
-from utils.device import device
+import getpass
+import logging
+import os
+import sys
+
 import torch
+import yaml
+
+from ..agent.agent import Agent
+from ..logger_toolbox import setup_logging
+from ..utils.device import device
 
 
 class Job:
@@ -17,7 +19,7 @@ class Job:
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('job', type=str)
         self.parser.add_argument('--agent_yaml', type=str, default=None)
-        self.parser.add_argument('--cuda', default=False, action='store_true')
+        self.parser.add_argument('--cuda', default=0, type=int, help="Cuda device to use (-1 = Cuda disabled)")
         self.parser.add_argument('--save', type=str, default='/home/execution')
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
@@ -82,9 +84,9 @@ class Job:
             for shared_agent in config['Agents']:
                 agent = Agent(**shared_agent['kwargs'])
 
-                if self['cuda']:
-                    for v in agent.value_functions:
-                        v.cuda()
+                # Cudaize models
+                for v in agent.value_functions:
+                    v.cuda(self['cuda'])
 
                 if shared_agent['file'] is not None:
                     self['epoch_start'] = agent.load_checkpoint(shared_agent['file'])
@@ -109,9 +111,12 @@ class Job:
 
     def resolve_cuda(self):
 
-        device.isCuda = self.args.cuda
+        if self.args.cuda == -1:
+            device.isCuda = False
+        else:
+            device.isCuda = True
 
         if device.isCuda and not torch.cuda.is_available():
             print("CUDA not available on your machine. Setting it back to False")
-            self.args.cuda = False
+            self.args.cuda = -1
             device.isCuda = False

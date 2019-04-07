@@ -1,7 +1,7 @@
-from .value_function import ValueFunction
-import torch.nn as nn
 from .register import register
+from .value_function import ValueFunction
 import numpy as np
+import torch.nn as nn
 
 
 @register

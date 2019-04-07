@@ -4,11 +4,11 @@ Agents:
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {out_channels: 5}}
-        - {class: LSTM, kwargs: {}}
+        - {class: ConvLstm, kwargs: {}}
       optimizers: []
       algorithms:
-        - {class: TD0Phase0, kwargs: {}}
-        - {class: TD0Phase1, kwargs: {}}
+        - {class: TD0Phase0, kwargs: {ratio_denominator: [14, 29]}}
+        - {class: TD0Phase1, kwargs: {ratio_denominator: 14}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.05},
@@ -20,16 +20,14 @@ Agents:
     file:
     kwargs:
       value_functions:
-        - {class: EvalCards, kwargs: {}}
-        - {class: EvalPlays, kwargs: {}}
+        - {class: FFW, kwargs: {}}
+        - {class: LSTM, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {}}
-        - {class: Adam, kwargs: {}}
       algorithms:
       policies:
-        - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.0},
-           callback: {name: choose_phase0, kwargs:{}}}
-        - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.0},
-           callback: {name: choose_phase1, kwargs:{}}}
+        - {class: Random,
+           kwargs: {},
+           callback: {name: choose_random, kwargs:{}}}
+        - {class: Random,
+           kwargs: {},
+           callback: {name: choose_random, kwargs:{}}}

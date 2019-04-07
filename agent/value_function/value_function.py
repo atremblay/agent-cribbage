@@ -1,6 +1,7 @@
-import torch.nn as nn
 import torch
-from utils.device import device
+import torch.nn as nn
+import inspect
+from ...utils.device import device
 
 
 class ValueFunction(nn.Module):
@@ -9,12 +10,12 @@ class ValueFunction(nn.Module):
         """
         super().__init__()
         self.need_training = True
+        self.forward_arg_size = len(inspect.signature(self.forward).parameters)
 
     @staticmethod
     def weights_init(m):
         if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
             nn.init.xavier_uniform_(m.weight)
-            #m.bias.data.zero_()
 
     def update(self, batch):
         pass

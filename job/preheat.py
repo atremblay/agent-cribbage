@@ -1,92 +1,80 @@
-
-import os
-import argparse
-from pathlib import Path
+from ..agent.value_function.conv import Conv
+from ..agent.value_function.lstm import ConvLstm
+from .job import Job
+from .register import register
 from gym_cribbage.envs.cribbage_env import (
     Stack,
     Card,
     Deck,
     evaluate_cards,
     evaluate_table,
-    RANKS,
+    RANKS, 
     SUITS
 )
-
-from agent.value_function.conv import Conv
-from agent.value_function.lstm import SimpleLSTM
 from itertools import combinations
-from collections import defaultdict
-import numpy as np
-from scipy.special import comb
-import tqdm
-from functools import reduce
 from poutyne.framework import Model
 from poutyne.framework.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
+import numpy as np
+import os
 import torch
+import tqdm
+from pathlib import Path
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+@register
+class Preheat(Job):
+    def __init__(self):
+        super().__init__()
+        super()._setup_job(__name__, None, None)
+        os.makedirs(self['checkpoint_dir'], exist_ok=True)
 
-    parser.add_argument(
-        "--cuda",
-        help="Cuda device to use",
-        type=int
-    )
+    def add_argument(self):
+        # Add arguments
+        self.parser.add_argument("--data_dir", default=None)
+        self.parser.add_argument("--epochs", default=5, type=int, help="Number of epochs to wait before stopping the training")
+        self.parser.add_argument("--checkpoint_dir", default=f'.', type=Path, help="Path where to save all the files")
 
-    parser.add_argument(
-        "-s", "--save",
-        help="Path where to save all the files",
-        default=Path(f'.'),
-        type=Path
-    )
+        self.parser.add_argument(
+            "-b", "--batch_size",
+            help="Number of data point to use per batch",
+            default=64,
+            type=int
+        )
 
-    parser.add_argument(
-        "-b", "--batch_size",
-        help="Number of data point to use per batch",
-        default=64,
-        type=int
-    )
+        self.parser.add_argument(
+            "--patience",
+            help="Number of epochs to wait before stopping the training",
+            default=5,
+            type=int
+        )
 
-    parser.add_argument(
-        "--patience",
-        help="Number of epochs to wait before stopping the training",
-        default=5,
-        type=int
-    )
+        self.parser.add_argument(
+            "--epsilon",
+            help="Minimum improvement on the validation loss to keep training",
+            default=0.0001,
+            type=float
+        )
 
-    parser.add_argument(
-        "--epoch",
-        help="Number of epochs to wait before stopping the training",
-        type=int
-    )
+        self.parser.add_argument(
+            "--lr",
+            help="Learning Rate",
+            default=5e-4,
+            type=float
+        )
 
-    parser.add_argument(
-        "--epsilon",
-        help="Minimum improvement on the validation loss to keep training",
-        default=0.0001,
-        type=float
-    )
+        self.parser.add_argument(
+            "--model",
+            help="Type of model to train",
+            choices=["conv", "lstm"]
+        )
 
-    parser.add_argument(
-        "--lr",
-        help="Learning Rate",
-        default=5e-4,
-        type=float
-    )
+    def job(self):
 
-    parser.add_argument(
-        "--model",
-        help="Type of model to train",
-        choices=["conv", "lstm"]
-    )
-
-    args = parser.parse_args()
-
-    os.makedirs(args.save, exist_ok=True)
-
-    return args
+        if self['model'] == 'conv':
+            train_conv(self.args)
+        else:
+            train_lstm(self.args)
 
 
 def train_conv(args):
@@ -127,7 +115,7 @@ def train_conv(args):
         X_train, y_train,
         validation_x=X_test,
         validation_y=y_test,
-        epochs=args.epoch,
+        epochs=args.epochs,
         batch_size=args.batch_size,
         callbacks=[
             EarlyStopping(
@@ -138,13 +126,13 @@ def train_conv(args):
     )
 
     torch.save(
-        {'model_state_dict': [conv.state_dict()], 'epoch': args.epoch},
-        os.path.join(args.save / 'conv.pkl')
+        {'model_state_dict': [conv.state_dict()], 'epoch': args.epochs},
+        os.path.join(args.checkpoint_dir / 'conv.pkl')
     )
 
 
 def train_lstm(args):
-    lstm = SimpleLSTM()
+    lstm = ConvLstm()
     model = Model(
         lstm,
         torch.optim.SGD(
@@ -200,7 +188,7 @@ def train_lstm(args):
                 i += 1
 
         history = model.fit(
-            SimpleLSTM.stack_to_numpy(stacks), values,
+            ConvLstm.stack_to_numpy(stacks), values,
             # epochs=1,
             batch_size=args.batch_size,
             callbacks=[
@@ -213,26 +201,15 @@ def train_lstm(args):
             # verbose=0
         )
         pred = model.predict(
-            SimpleLSTM.stack_to_numpy([base_hand1, base_hand2])
+            ConvLstm.stack_to_numpy([base_hand1, base_hand2])
         )
         print(f"Simulation {simluation}, loss {history[-1]['loss']:.6f} {base_hand1} {pred[0, 0]:.6f}  {base_hand2}  {pred[1, 0]:.6f}")
         simluation += 1
-        if simluation == args.epoch:
+        if simluation == args.epochs:
             break
 
     torch.save(
-        {'model_state_dict': [lstm.state_dict()], 'epoch': args.epoch},
-        os.path.join(args.save / 'lstm.pkl')
+        {'model_state_dict': [lstm.state_dict()], 'epoch': args.epochs},
+        os.path.join(args.checkpoint_dir / 'lstm.pkl')
     )
 
-
-def main():
-    args = parse_args()
-    if args.model == 'conv':
-        train_conv(args)
-    else:
-        train_lstm(args)
-
-
-if __name__ == '__main__':
-    main()

@@ -1,12 +1,12 @@
 from .algorithm import Algorithm
 from .register import register
 import numpy as np
-from gym_cribbage.envs.cribbage_env import evaluate_cards, Card, Stack, RANKS, SUITS
 
 
 @register
 class TD0Phase0(Algorithm):
-    def __init__(self, data_files):
+    def __init__(self, data_files, ratio_denominator=(1, 1)):
+        self.ratio_denominator = ratio_denominator
         super().__init__(data_files)
 
     def _preprocess_file(self, file_data):
@@ -21,23 +21,21 @@ class TD0Phase0(Algorithm):
                 if hand in file_data['data'][2]:
                     reward_phase2 = file_data['data'][2][hand][0][1]
 
-                    sample = hand_data[0][0][0][0][hand_data[0][0][1]]
-                    # If all phase are there for current hand we store data
-                    G = reward_phase0+reward_phase1+reward_phase2
-                    # myStack = Stack()
-                    # for card_idx in range(sample.shape[-1]):
-                    #     suit_rank_idx = np.argwhere(sample[:,:,card_idx]==True)[0]
-                    #     myStack.add_(Card(RANKS[suit_rank_idx[1]], SUITS[suit_rank_idx[0]]))
-                    # G = evaluate_cards(myStack)
+                    sample = []
+                    for s in hand_data[0][0][0]:
+                        sample.append(s[hand_data[0][0][1]])
 
-                    data.append([sample, np.float32(G)])
+                    # If all phase are there for current hand we store data
+                    G = reward_phase0+reward_phase1/self.ratio_denominator[0]+reward_phase2/self.ratio_denominator[1]
+                    data.append(sample+[np.float32(G)])
 
         return {'Dataset': data}
 
 
 @register
 class TD0Phase1(Algorithm):
-    def __init__(self, data_files):
+    def __init__(self, data_files, ratio_denominator=1):
+        self.ratio_denominator = ratio_denominator
         super().__init__(data_files)
 
     def _preprocess_file(self, file_data):
@@ -55,7 +53,7 @@ class TD0Phase1(Algorithm):
 
                 # Resolve dataset (must be 1 dataset by state sequence length and state prime sequence length pair)
                 seq_len_s_i_choice = s_i_choice[0].shape[0]
-
+                R_i_plus_1 /= self.ratio_denominator
                 seq_len_s_prime = s_prime[0].shape[0] if len(s_prime) > 0 else np.float32(0)
                 data_set_name = 'i='+str(seq_len_s_i_choice)+'prime='+str(seq_len_s_prime)
                 if data_set_name in datasets:
@@ -65,5 +63,5 @@ class TD0Phase1(Algorithm):
 
         return datasets
 
-    def deformat(self, batch):
-        return batch[:2], batch[2], batch[3:]
+    def deformat(self, batch, value_function):
+        return batch[:value_function.forward_arg_size], batch[value_function.forward_arg_size], batch[value_function.forward_arg_size+1:]

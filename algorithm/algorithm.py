@@ -1,6 +1,6 @@
+from abc import ABC, abstractmethod
 from torch.utils.data import Dataset
 import pickle
-from abc import ABC, abstractmethod
 
 
 class Algorithm(ABC):
@@ -31,7 +31,7 @@ class Algorithm(ABC):
 
         return datasets
 
-    def deformat(self, batch):
+    def deformat(self, batch, value_function):
         """ Deformat batch in a list of [s_i, reward, *s_primes]
 
         s_i: List of the current state of where the gradient will be calculated.
@@ -42,9 +42,10 @@ class Algorithm(ABC):
         reward. Otherwise, this method as to be overloaded in the subclass.
 
         :param batch:
+        :param value_function
         :return: [s_i, reward, s_primes]
         """
-        return [batch[0]], batch[1], []
+        return batch[:value_function.forward_arg_size], batch[value_function.forward_arg_size], []
 
     @abstractmethod
     def _preprocess_file(self, file_data):

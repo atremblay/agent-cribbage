@@ -1,13 +1,13 @@
 Agents:
   - number: 2
-    file: ./conv.pkl
+    file:
     kwargs:
       value_functions:
-        - {class: Conv, kwargs: {out_channels: 5}}
-        - {class: LSTM, kwargs: {}}
+        - {class: Conv, kwargs: {out_channels: 5, with_dealer: True}}
+        - {class: ConvLstm, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 0.01}}
-        - {class: Adam, kwargs: {lr: 0.005}}
+        - {class: Adam, kwargs: {lr: 5.0e-5}}
+        - {class: Adam, kwargs: {lr: 0.0005}}
       algorithms:
         - {class: TD0Phase0, kwargs: {}}
         - {class: TD0Phase1, kwargs: {}}

@@ -1,7 +1,7 @@
 from .job import Job
+from .register import register
 import gym
 import gym_cribbage
-from .register import register
 
 
 @register
@@ -24,38 +24,30 @@ class Play(Job):
             env = gym.make('cribbage-v0')
             winner, hand, dealer = None, 0, None
 
-            while winner is None:
+            state, reward, done, debug = env.reset(dealer)
 
-                state, reward, done, debug = env.reset(dealer)
-                self.logger.debug('Hand:' + str(hand))
+            while not done:
 
-                while not done:
+                if env.new_hand:
+                    hand += 1
 
-                    self.logger.debug('\tCrib: ' + str(env.crib) + ' - Table_Count: ' + str(env.table_value))
-                    if env.phase < 2:
-                        card = self.agents[env.player].choose(state, env)
-                        self.logger.debug('\t\tPhase: ' + str(env.phase) + ' Player:' + str(env.player) +
-                                          ' chooses from: ' + str(state.hand) + ' -> ' + str(card))
-                        state, reward, done, debug = env.step(card)
+                if env.phase < 2:
+                    card = self.agents[env.player].choose(state, env)
+                    state, reward, done, debug = env.step(card)
 
-                    else:
-                        state, reward, done, debug = env.step([])
+                else:
+                    state, reward, done, debug = env.step([])
 
-                    self.logger.debug('\t\tPhase: ' + str(env.phase) + ' Player:' + str(state.reward_id) +
-                                      ' gets reward: ' + str(reward))
+                self.agents[state.reward_id].store_reward(reward)
+                self.logger.human('Score:' + str([a.total_points for a in self.agents]))
+                self.append_data(self.agents, env, state, hand)
 
-                    self.agents[state.reward_id].store_reward(reward)
-                    self.logger.human('Score:' + str([a.total_points for a in self.agents]))
-                    self.append_data(self.agents, env, state, hand)
+                assert self.agents[0].total_points == env.scores[0]
+                assert self.agents[1].total_points == env.scores[1]
 
-                  # Check if current reward has determine a winner
-                    if self.agents[state.reward_id].total_points >= 121:
-                        winner = state.reward_id
-                        done = True
-
-                # Change dealer
-                dealer = env.next_player(env.dealer)
-                hand += 1
+                # Check if current reward has determine a winner
+                if self.agents[state.reward_id].total_points >= 121:
+                    winner = state.reward_id
 
             self.agents[winner].data['winner'] = 1  # Store winner
             game_statistics[winner]['game_won'] += 1

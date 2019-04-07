@@ -1,13 +1,14 @@
 from .job import Job
-from utils.device import device
+from ..utils.device import device
 from .register import register
 from .play import Play
-from algorithm.register import registry as algorithm_registry
+from ..algorithm.register import registry as algorithm_registry
 from torch import nn
 from torch.utils.data import DataLoader
 import os
 import shutil
 from datetime import datetime
+import numpy as np
 import copy
 
 @register
@@ -32,7 +33,13 @@ class Train(Job):
         self.parser.add_argument("--dataepochs2keep", default=1, type=int)
         self.parser.add_argument("--checkpoint_period", default=10, type=int)
         self.parser.add_argument("--checkpoint_dir", default='./', type=str)
-        self.parser.add_argument("--spin", default=1, type=int)
+        self.parser.add_argument("--spin", default=10, type=int)
+        self.parser.add_argument(
+            "--patience",
+            help="Number of epochs to wait before stopping the training",
+            default=5,
+            type=int
+        )
 
     def job(self):
 
@@ -83,13 +90,18 @@ class Train(Job):
 
             old_value_function = copy.deepcopy(context['value_function'])
             old_value_function.eval()
+            running_loss, best_loss, patience = 0, np.float('inf'), 0
 
             for i in range(self['spin']):
+
+                if patience >= self['patience']:
+                    break
+
                 nProcessed = 0
                 for batch_idx, batch in enumerate(context['dataloader']):
 
                     # Deformat data batch produced by Pytorch dataloader
-                    s_i, reward, s_prime = context['algorithm'].deformat(batch)
+                    s_i, reward, s_prime = context['algorithm'].deformat(batch, context['value_function'])
 
                     # Device context
                     s_i, reward, s_prime = [device(s) for s in s_i], device(reward), [device(s) for s in s_prime]
@@ -104,6 +116,7 @@ class Train(Job):
                     context['optimizer'].zero_grad()
                     loss = context['loss'](output.squeeze(), reward)
                     loss.backward()
+                    running_loss += loss.item()
                     context['optimizer'].step()
 
                     # Statistics
@@ -115,6 +128,15 @@ class Train(Job):
                             100. * batch_idx / len(context['dataloader']),
                             loss.item(), device)
                     )
+
+                current_loss = running_loss / (batch_idx + 1)
+                if current_loss > (best_loss - 0.0001):
+                    patience += 1
+                else:
+                    patience = 0
+                    best_loss = current_loss
+
+
 
     @staticmethod
     def init_training_contexts(agent, data_files):

@@ -1,5 +1,5 @@
 gym
--e git://github.com/atremblay/gym-cribbage.git@9b7e67f54c346aba05234ec244b9db49d80809bc#egg=gym-cribbage
+-e git://github.com/atremblay/gym-cribbage.git@152581c4ce6ea523d4ab8a5e49e8676714dbbbf5#egg=gym-cribbage
 torchvision
 pyyaml
 matplotlib

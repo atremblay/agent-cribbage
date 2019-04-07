@@ -1,17 +1,16 @@
 from .policy.register import registry as policy_registry
 from .value_function.register import registry as value_function_registry
-from itertools import combinations
 from gym_cribbage.envs.cribbage_env import Stack, evaluate_cards
-import numpy as np
-import pickle
-import os
-import logging
+from itertools import combinations
 import copy
+import logging
+import os
+import pickle
 import torch
 
 
 class Agent:
-    def __init__(self, policies, value_functions, optimizers, algorithms):
+    def __init__(self, policies, value_functions, optimizers, algorithms, training_settings=None):
 
         self.policies = [policy_registry[p['class']](**p['kwargs']) for p in policies]
         self.value_functions = [value_function_registry[v['class']](**v['kwargs']) for v in value_functions]
@@ -21,6 +20,7 @@ class Agent:
         self.scheduler = []
         self.choose_phase = [getattr(self, p['callback']['name']) for p in policies]
         self.choose_phase_kwargs = [p['callback']['kwargs'] for p in policies]
+        self.training_settings = training_settings
 
         self.cards_2_drop_phase0 = []
         self.reset()
@@ -152,7 +152,7 @@ class Agent:
                 # Unique 4 cards permutations (Good for all numbers of players)
                 s_prime_combinations = [Stack(c) for c in combinations(state.hand, 4)]
                 # Convert stack to numpy
-                after_state = self.value_functions[env.phase].stack_and_state_to_numpy(s_prime_combinations, state, env)
+                after_state = self.value_functions[env.phase].get_after_state(s_prime_combinations, state, env)
 
                 # Store state for data generation.
                 idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
@@ -175,18 +175,8 @@ class Agent:
             return self.human_input(state.hand)
 
         else:
-            hand = np.expand_dims(np.array([c.state for c in state.hand]), axis=1)
 
-            # If has card on the table
-            if len(env.table) != 0:
-                table_cards = np.expand_dims(np.array([card.state for card in env.table]), 0)
-                table_cards_repeated = np.repeat(table_cards, len(state.hand), axis=0)
-                hand = np.append(table_cards_repeated, hand, axis=1)
-
-            # Store state for data generation.
-            after_state = [hand.astype('float32'),
-                           np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0).astype('float32')]
-
+            after_state = self.value_functions[env.phase].get_after_state(state, env)
             idx_s_prime = self.policies[env.phase].choose(after_state, self.value_functions[env.phase])
             self.store_state(after_state, idx_s_prime)
 

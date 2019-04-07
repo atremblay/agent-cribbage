@@ -1,5 +1,5 @@
-from .value_function import ValueFunction
 from .register import register
+from .value_function import ValueFunction
 from gym_cribbage.envs.cribbage_env import evaluate_table, Card, Stack
 import numpy as np
 import torch
@@ -14,7 +14,7 @@ class EvalPlays(ValueFunction):
         self.custom_hash = __name__ + 'V0.0.0'
         self.need_training = False
 
-    def forward(self, stacks, discarded):
+    def forward(self, stacks):
         values = torch.zeros(len(stacks), dtype=torch.float)
         for i, stack in enumerate(stacks.cpu().numpy()):
             myStack = Stack()
@@ -24,3 +24,9 @@ class EvalPlays(ValueFunction):
             values[i] = torch.tensor(evaluate_table(myStack), dtype=torch.float)
 
         return values
+
+    def get_after_state(self, state, env):
+        choices = np.expand_dims(np.array([c.state for c in state.hand]), axis=1)
+        # Store state for data generation.
+        after_state = [choices.astype('float32')]
+        return after_state
