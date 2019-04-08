@@ -10,6 +10,7 @@ import shutil
 from datetime import datetime
 import numpy as np
 import copy
+import torch
 
 @register
 class Train(Job):
@@ -33,11 +34,11 @@ class Train(Job):
         self.parser.add_argument("--dataepochs2keep", default=1, type=int)
         self.parser.add_argument("--checkpoint_period", default=10, type=int)
         self.parser.add_argument("--checkpoint_dir", default='./', type=str)
-        self.parser.add_argument("--spin", default=10, type=int)
+        self.parser.add_argument("--spin", default=1, type=int)
         self.parser.add_argument(
             "--patience",
             help="Number of epochs to wait before stopping the training",
-            default=5,
+            default=2,
             type=int
         )
 
@@ -98,17 +99,22 @@ class Train(Job):
                     break
 
                 nProcessed = 0
-                for batch_idx, batch in enumerate(context['dataloader']):
-
-                    # Deformat data batch produced by Pytorch dataloader
-                    s_i, reward, s_prime = context['algorithm'].deformat(batch, context['value_function'])
+                for batch_idx, (s_i, reward, s_primes) in enumerate(context['dataloader']):
 
                     # Device context
-                    s_i, reward, s_prime = [device(s) for s in s_i], device(reward), [device(s) for s in s_prime]
+                    s_i, reward = [device(s) for s in s_i], device(reward)
 
-                    if len(s_prime) > 0:
-                        # Bootstrapping Value Evaluation
-                        reward += old_value_function(*s_prime).flatten().detach()
+                    if len(s_primes) > 0:
+                        bootstrap_value = device(torch.zeros(len(s_primes), dtype=torch.float32))
+                        for i_sample, (s_prime, idx_choice) in enumerate(s_primes):
+                            # Bootstrapping Value Evaluation
+                            if s_prime is not None:
+                                s_prime = [device(s) for s in s_prime]
+                                bootstrap_value[i_sample] = context['algorithm'].operator(old_value_function(*s_prime).flatten().detach(), idx_choice)
+                            else:
+                                bootstrap_value[i_sample] = 0
+
+                        reward += bootstrap_value
 
                     # Current State evaluation and back propagation
                     context['value_function'].train()
@@ -137,21 +143,20 @@ class Train(Job):
                     best_loss = current_loss
 
 
-
     @staticmethod
     def init_training_contexts(agent, data_files):
 
         training_contexts = []
-        for i, value_function in enumerate(agent.value_functions):
+        for i, (value_function, policy) in enumerate(zip(agent.value_functions, agent.policies)):
 
             # If value function needs trainings
             if value_function.need_training:
-                algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, **agent.algorithms[i]['kwargs'])
+                algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, value_function, policy, **agent.algorithms[i]['kwargs'])
                 loss = nn.MSELoss()
 
                 for dataset in algorithm.datasets.values():
                     context = {}
-                    dataloader = DataLoader(dataset, batch_size=20, shuffle=True, num_workers=0)
+                    dataloader = DataLoader(dataset, batch_size=20, shuffle=True, num_workers=0, collate_fn=algorithm.collate_func)
                     context['optimizer'] = agent.optimizers[i]
                     context['scheduler'] = agent.scheduler[i]
                     context['dataloader'] = dataloader
@@ -162,3 +167,4 @@ class Train(Job):
                     training_contexts.append(context)
 
         return training_contexts
+

@@ -7,8 +7,8 @@ Agents:
         - {class: SimpleLSTM, kwargs: {}}
       optimizers: []
       algorithms:
-        - {class: TD0Phase0, kwargs: {}}
-        - {class: ExpectedTD0Phase1, kwargs: {}}
+        - {class: AllRewards_Phase0, kwargs: {}}
+        - {class: ExpectedOneStep_Sarsa, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.05},

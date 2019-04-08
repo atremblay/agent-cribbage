@@ -4,6 +4,7 @@ from gym_cribbage.envs.cribbage_env import Stack, RANKS, SUITS
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 @register
@@ -106,15 +107,36 @@ class ConvLstm(ValueFunction):
         self.apply(self.weights_init)
 
     def forward(self, x, discarded, hand):
-        # out = self.pad(x.transpose(1, 2)).transpose(1, 2)
+
+        lengths = x.sum(dim=1).sum(dim=1).cpu().numpy()
+        sorted_idx = torch.tensor(np.argsort(lengths)[::-1].copy())
+
+        if len(lengths) > 1:
+            sorted_len = lengths[sorted_idx]
+        else:
+            sorted_len = lengths
+
         out2 = self.conv2(x.unsqueeze(1)).sum(dim=-1)
         out3 = self.conv3(x.unsqueeze(1)).sum(dim=-1)
         out = torch.cat(
             [out2.transpose(1, 2), out3.transpose(1, 2), x],
             dim=2
         )
-        out, (hidden, cell) = self.lstm(out)
-        out = out[:, -1, :]  # Only keeps last value of sequence
+
+        out = out[sorted_idx]
+        packed_out = pack_padded_sequence(
+            out,
+            sorted_len,
+            batch_first=True
+        )
+
+        packed_out, (hidden, cell) = self.lstm(packed_out)
+        out, _ = pad_packed_sequence(
+            packed_out,
+            batch_first=True
+        )
+
+        out = out[:, -1, :][np.argsort(sorted_idx)]  # Only keeps last value of sequence
         out = self.clf(torch.cat((out, discarded, hand), dim=1))
         return out
 
@@ -125,12 +147,12 @@ class ConvLstm(ValueFunction):
 
         max_len = max([len(s) for s in stacks])
         batch_size = len(stacks)
-        x = np.zeros((batch_size, max_len, 13), dtype=np.float32)
+        x = np.zeros((batch_size, 8, 13), dtype=np.float32)
 
         for i, stack in enumerate(stacks):
-            for j, card in enumerate(sorted(stack, reverse=True)):
+            for j, card in enumerate(sorted(stack)):
                 rank = RANKS.index(card.rank)
-                x[i, -(j + 1), rank] = 1
+                x[i, j, rank] = 1
         return x
 
     def get_after_state(self, state, env):

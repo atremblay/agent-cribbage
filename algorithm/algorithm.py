@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
 from torch.utils.data import Dataset
 import pickle
+from torch.utils.data.dataloader import default_collate
 
 
 class Algorithm(ABC):
 
-    def __init__(self, data_files):
+    def __init__(self, data_files, value_function, policy):
         """
         Args:
             data_files (List): List of string of path
         """
+        self.value_function = value_function
+        self.policy = policy
         self.datasets = self._preprocess_data(data_files)
 
     def _preprocess_data(self, data_files):
@@ -31,7 +34,7 @@ class Algorithm(ABC):
 
         return datasets
 
-    def deformat(self, batch, value_function):
+    def deformat(self, batch):
         """ Deformat batch in a list of [s_i, reward, *s_primes]
 
         s_i: List of the current state of where the gradient will be calculated.
@@ -45,7 +48,7 @@ class Algorithm(ABC):
         :param value_function
         :return: [s_i, reward, s_primes]
         """
-        return batch[:value_function.forward_arg_size], batch[value_function.forward_arg_size], []
+        return batch[:self.value_function.forward_arg_size], batch[self.value_function.forward_arg_size], []
 
     @abstractmethod
     def _preprocess_file(self, file_data):
@@ -53,6 +56,22 @@ class Algorithm(ABC):
         and the data contained in each dataset (value).
 
         :param file_data:
+        :return:
+        """
+        pass
+
+    def collate_func(self, batch):
+        return self.deformat(default_collate(batch))
+
+    def operator(self, values, idx_choosen):
+        """ Methods to return the bootstrapping value that will be added to the reward.
+
+        You can use the value_function and the policy to calculate this reward.
+
+        The operator could result in a Sarsa, QLearning, or Expected Sarsa RL algorithm.
+
+        :param values: values to select from
+        :param values: index of the value that was choose during play.
         :return:
         """
         pass
