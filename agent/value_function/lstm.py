@@ -72,7 +72,7 @@ class ConvLstm(ValueFunction):
             nn.ZeroPad2d((0, 0, 1, 0)),
             nn.Conv2d(
                 in_channels=1,
-                out_channels=5,
+                out_channels=15,
                 kernel_size=2,
                 stride=1,
                 bias=False
@@ -83,15 +83,26 @@ class ConvLstm(ValueFunction):
             nn.ZeroPad2d((0, 0, 2, 0)),
             nn.Conv2d(
                 in_channels=1,
-                out_channels=5,
+                out_channels=15,
                 kernel_size=3,
                 stride=1,
                 bias=False
             )
         )
 
+        self.conv4 = nn.Sequential(
+            nn.ZeroPad2d((0, 0, 3, 0)),
+            nn.Conv2d(
+                in_channels=1,
+                out_channels=15,
+                kernel_size=4,
+                stride=1,
+                bias=False
+            )
+        )
+
         self.lstm = nn.LSTM(
-            input_size=10+13,
+            input_size=45+13,
             hidden_size=104,
             num_layers=2,
             batch_first=True
@@ -99,6 +110,9 @@ class ConvLstm(ValueFunction):
 
         # Logistic Regression
         self.clf = nn.Sequential(
+            nn.Linear(104+52+13, 104+52+13),
+            nn.ReLU(),
+            nn.Dropout(),
             nn.Linear(104+52+13, 52),
             nn.ReLU(),
             nn.Dropout(),
@@ -120,8 +134,14 @@ class ConvLstm(ValueFunction):
 
         out2 = self.conv2(x.unsqueeze(1)).sum(dim=-1)
         out3 = self.conv3(x.unsqueeze(1)).sum(dim=-1)
+        out4 = self.conv4(x.unsqueeze(1)).sum(dim=-1)
         out = torch.cat(
-            [out2.transpose(1, 2), out3.transpose(1, 2), x],
+            [
+                out2.transpose(1, 2),
+                out3.transpose(1, 2),
+                out4.transpose(1, 2),
+                x
+            ],
             dim=2
         )
 
