@@ -74,7 +74,8 @@ class ConvLstm(ValueFunction):
                 in_channels=1,
                 out_channels=5,
                 kernel_size=2,
-                stride=1
+                stride=1,
+                bias=False
             )
         )
 
@@ -84,7 +85,8 @@ class ConvLstm(ValueFunction):
                 in_channels=1,
                 out_channels=5,
                 kernel_size=3,
-                stride=1
+                stride=1,
+                bias=False
             )
         )
 
@@ -136,8 +138,26 @@ class ConvLstm(ValueFunction):
             batch_first=True
         )
 
-        out = out[:, -1, :][np.argsort(sorted_idx)]  # Only keeps last value of sequence
-        out = self.clf(torch.cat((out, discarded, hand), dim=1))
+
+        # Extract the outputs for the last timestep of each example
+        idx = (torch.LongTensor(sorted_len) - 1).view(-1, 1)
+        if x.is_cuda:
+            idx = idx.cuda(device=x.device)
+        # This duplicates the last time step for every batch element through
+        # the hidden dimension
+        idx = idx.expand(out.shape[0], out.shape[2])
+
+        time_dimension = 1
+        idx = idx.unsqueeze(time_dimension)
+
+        # Shape: (batch_size, rnn_hidden_dim)
+        last_output = out.gather(
+            time_dimension, idx
+        ).squeeze(time_dimension)
+        last_output = last_output[np.argsort(sorted_idx)]
+
+        # out = out[:, -1, :][np.argsort(sorted_idx)]  # Only keeps last value of sequence
+        out = self.clf(torch.cat((last_output, discarded, hand), dim=1))
         return out
 
     @staticmethod
@@ -150,7 +170,7 @@ class ConvLstm(ValueFunction):
         x = np.zeros((batch_size, 8, 13), dtype=np.float32)
 
         for i, stack in enumerate(stacks):
-            for j, card in enumerate(sorted(stack)):
+            for j, card in enumerate(stack):
                 rank = RANKS.index(card.rank)
                 x[i, j, rank] = 1
         return x
