@@ -35,6 +35,7 @@ class Train(Job):
         self.parser.add_argument("--checkpoint_period", default=10, type=int)
         self.parser.add_argument("--checkpoint_dir", default='./', type=str)
         self.parser.add_argument("--spin", default=1, type=int)
+        self.parser.add_argument("--batchsize", default=64, type=int)
         self.parser.add_argument(
             "--patience",
             help="Number of epochs to wait before stopping the training",
@@ -143,8 +144,7 @@ class Train(Job):
                     best_loss = current_loss
 
 
-    @staticmethod
-    def init_training_contexts(agent, data_files):
+    def init_training_contexts(self, agent, data_files):
 
         training_contexts = []
         for i, (value_function, policy) in enumerate(zip(agent.value_functions, agent.policies)):
@@ -156,7 +156,7 @@ class Train(Job):
 
                 for dataset in algorithm.datasets.values():
                     context = {}
-                    dataloader = DataLoader(dataset, batch_size=20, shuffle=True, num_workers=0, collate_fn=algorithm.collate_func)
+                    dataloader = DataLoader(dataset, batch_size=self['batchsize'], shuffle=True, num_workers=0, collate_fn=algorithm.collate_func)
                     context['optimizer'] = agent.optimizers[i]
                     context['scheduler'] = agent.scheduler[i]
                     context['dataloader'] = dataloader
