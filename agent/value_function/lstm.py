@@ -24,7 +24,7 @@ class LSTM(ValueFunction):
         # Logistic Regression
         self.clf = nn.Sequential(
             nn.Linear(104+52+13, 52),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
         )
@@ -111,10 +111,10 @@ class ConvLstm(ValueFunction):
         # Logistic Regression
         self.clf = nn.Sequential(
             nn.Linear(104+52+13, 104+52+13),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Dropout(),
             nn.Linear(104+52+13, 52),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
         )
