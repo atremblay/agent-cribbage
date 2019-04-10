@@ -24,7 +24,7 @@ class LSTM(ValueFunction):
         # Logistic Regression
         self.clf = nn.Sequential(
             nn.Linear(104+52+13, 52),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
         )
@@ -72,9 +72,10 @@ class ConvLstm(ValueFunction):
             nn.ZeroPad2d((0, 0, 1, 0)),
             nn.Conv2d(
                 in_channels=1,
-                out_channels=5,
+                out_channels=15,
                 kernel_size=2,
-                stride=1
+                stride=1,
+                bias=False
             )
         )
 
@@ -82,14 +83,26 @@ class ConvLstm(ValueFunction):
             nn.ZeroPad2d((0, 0, 2, 0)),
             nn.Conv2d(
                 in_channels=1,
-                out_channels=5,
+                out_channels=15,
                 kernel_size=3,
-                stride=1
+                stride=1,
+                bias=False
+            )
+        )
+
+        self.conv4 = nn.Sequential(
+            nn.ZeroPad2d((0, 0, 3, 0)),
+            nn.Conv2d(
+                in_channels=1,
+                out_channels=15,
+                kernel_size=4,
+                stride=1,
+                bias=False
             )
         )
 
         self.lstm = nn.LSTM(
-            input_size=10+13,
+            input_size=45+13,
             hidden_size=104,
             num_layers=2,
             batch_first=True
@@ -97,8 +110,11 @@ class ConvLstm(ValueFunction):
 
         # Logistic Regression
         self.clf = nn.Sequential(
+            nn.Linear(104+52+13, 104+52+13),
+            nn.LeakyReLU(),
+            nn.Dropout(),
             nn.Linear(104+52+13, 52),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
         )
@@ -118,8 +134,14 @@ class ConvLstm(ValueFunction):
 
         out2 = self.conv2(x.unsqueeze(1)).sum(dim=-1)
         out3 = self.conv3(x.unsqueeze(1)).sum(dim=-1)
+        out4 = self.conv4(x.unsqueeze(1)).sum(dim=-1)
         out = torch.cat(
-            [out2.transpose(1, 2), out3.transpose(1, 2), x],
+            [
+                out2.transpose(1, 2),
+                out3.transpose(1, 2),
+                out4.transpose(1, 2),
+                x
+            ],
             dim=2
         )
 
@@ -136,8 +158,26 @@ class ConvLstm(ValueFunction):
             batch_first=True
         )
 
-        out = out[:, -1, :][np.argsort(sorted_idx)]  # Only keeps last value of sequence
-        out = self.clf(torch.cat((out, discarded, hand), dim=1))
+
+        # Extract the outputs for the last timestep of each example
+        idx = (torch.LongTensor(sorted_len) - 1).view(-1, 1)
+        if x.is_cuda:
+            idx = idx.cuda(device=x.device)
+        # This duplicates the last time step for every batch element through
+        # the hidden dimension
+        idx = idx.expand(out.shape[0], out.shape[2])
+
+        time_dimension = 1
+        idx = idx.unsqueeze(time_dimension)
+
+        # Shape: (batch_size, rnn_hidden_dim)
+        last_output = out.gather(
+            time_dimension, idx
+        ).squeeze(time_dimension)
+        last_output = last_output[np.argsort(sorted_idx)]
+
+        # out = out[:, -1, :][np.argsort(sorted_idx)]  # Only keeps last value of sequence
+        out = self.clf(torch.cat((last_output, discarded, hand), dim=1))
         return out
 
     @staticmethod
@@ -150,7 +190,7 @@ class ConvLstm(ValueFunction):
         x = np.zeros((batch_size, 8, 13), dtype=np.float32)
 
         for i, stack in enumerate(stacks):
-            for j, card in enumerate(sorted(stack)):
+            for j, card in enumerate(stack):
                 rank = RANKS.index(card.rank)
                 x[i, j, rank] = 1
         return x

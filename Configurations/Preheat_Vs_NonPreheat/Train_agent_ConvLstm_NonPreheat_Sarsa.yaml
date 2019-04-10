@@ -1,12 +1,12 @@
 Agents:
   - number: 2
-    file: ./conv.pkl
+    file:
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {out_channels: 5}}
         - {class: ConvLstm, kwargs: {}}
       optimizers:
-        - {class: Adam, kwargs: {lr: 5.0e-6}}
+        - {class: Adam, kwargs: {lr: 5.0e-4}}
         - {class: Adam, kwargs: {lr: 5.0e-4}}
       algorithms:
         - {class: AllRewards_Phase0, kwargs: {}}

@@ -10,7 +10,7 @@ Agents:
         - {class: Adam, kwargs: {lr: 5.0e-4}}
       algorithms:
         - {class: AllRewards_Phase0, kwargs: {}}
-        - {class: OneStep_Sarsa, kwargs: {}}
+        - {class: OneStep_ExpectedSarsa, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.05},
