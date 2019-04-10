@@ -108,7 +108,8 @@ class Agent:
 
     def human_input(self, hand):
         while 1:
-            self.logger.human('\n' + str(hand))
+            self.logger.human('\n' + 'Idx:\t\t'+ '\t'.join([str(j)+''.join([' ' for _ in range(len(str(c))-1)]) for j, c in enumerate(hand)]))
+            self.logger.human('Your hand: \t'+'\t'.join([str(c) for c in hand]))
             try:
                 idx_card = int(input('Select index of card to play on the table: '))
                 card = hand[idx_card]
@@ -135,9 +136,12 @@ class Agent:
 
             if human:
                 if env.dealer == env.player:
-                    self.logger.human('\n\n\n!!!!!!You are the dealer!!!!!')
+
+                    self.logger.human('\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
+                                      '!!!!!!You are the dealer!!!!!')
                 else:
-                    self.logger.human('\n\n\n!!!!!You are NOT the dealer!!!!!')
+                    self.logger.human('\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
+                                      '!!!!!You are NOT the dealer!!!!!')
 
                 temp_hand = copy.deepcopy(state.hand)
                 stack = Stack()
@@ -169,9 +173,14 @@ class Agent:
 
     def choose_phase1(self, state, env, human=False):
 
+        spacing = '\n\n====================================\n'
+        if env.prev_phase != 1:
+            self.logger.human(spacing+'Starter: ' + str(env.starter))
+            spacing = ''
+
         if human:
-            self.logger.human('\n\nStarter: '+str(env.starter))
-            self.logger.human('Table: '+str(env.table)+' (count= '+str(sum([c.value for c in env.table]))+')')
+
+            self.logger.human(spacing+'Table: '+str(env.table)+' (count= '+str(sum([c.value for c in env.table]))+')')
             return self.human_input(state.hand)
 
         else:

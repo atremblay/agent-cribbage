@@ -36,10 +36,14 @@ class Play(Job):
                     state, reward, done, debug = env.step(card)
 
                 else:
+                    self.logger.human('Starter: ' + str(env.starter))
+                    self.logger.human('Hand Player '+str(env.player)+': ' + str(env.played[env.player]))
+                    self.logger.human('Crib: ' + str(env.crib))
                     state, reward, done, debug = env.step([])
 
+
                 self.agents[state.reward_id].store_reward(reward)
-                self.logger.human('Score:' + str([a.total_points for a in self.agents]))
+                self.logger.human('\t\t\t\t\t\t\tScore:' + str([a.total_points for a in self.agents]))
                 self.append_data(self.agents, env, state, hand)
 
                 assert self.agents[0].total_points == env.scores[0]
