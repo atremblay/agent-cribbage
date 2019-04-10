@@ -20,7 +20,7 @@ class Job:
         self.parser.add_argument('job', type=str)
         self.parser.add_argument('--agent_yaml', type=str, default=None)
         self.parser.add_argument('--cuda', default=0, type=int, help="Cuda device to use (-1 = Cuda disabled)")
-        self.parser.add_argument('--save', type=str, default='/home/execution')
+        self.parser.add_argument('--save', type=str, default='.')
         self.parser.add_argument('--seed', type=int, default=42)
         self.parser.add_argument("--number_games", default=1, type=int)
         self.agents = agent
