@@ -109,11 +109,9 @@ class Agent:
             try:
                 idx_card = int(input('Select index of card to play on the table: '))
                 card = hand[idx_card]
-                self.logger.human('Play: ' + str(card))
                 return card
             except Exception as e:
                 self.logger.human('ERROR: Invalid Input -> '+str(e))
-
 
     def choose_phase0(self, state, env, human=False):
         """
@@ -132,7 +130,6 @@ class Agent:
 
             if human:
                 if env.dealer == env.player:
-
                     self.logger.human('\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n'
                                       '!!!!!!You are the dealer!!!!!')
                 else:
@@ -175,10 +172,8 @@ class Agent:
             spacing = ''
 
         if human:
-
             self.logger.human(spacing+'Table: '+str(env.table)+' (count= '+str(sum([c.value for c in env.table]))+')')
             return self.human_input(state.hand)
-
         else:
 
             after_state = self.value_functions[env.phase].get_after_state(state, env)

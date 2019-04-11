@@ -33,6 +33,9 @@ class Play(Job):
 
                 if env.phase < 2:
                     card = self.agents[env.player].choose(state, env)
+                    if env.phase == 1 or (env.phase == 0 and 'human' in self.agents[env.player].choose_phase_kwargs[0]):
+                        self.logger.human('\t\t\t\t\t\t'*env.player+'Player '+str(env.player) +' plays: '+ str(card))
+
                     state, reward, done, debug = env.step(card)
 
                 else:
@@ -43,7 +46,7 @@ class Play(Job):
 
 
                 self.agents[state.reward_id].store_reward(reward)
-                self.logger.human('\t\t\t\t\t\t\tScore:' + str([a.total_points for a in self.agents]))
+                self.logger.human('\t\t\t\t\t\t\t\t\t\t\t\t\tScore:' + str([a.total_points for a in self.agents]))
                 self.append_data(self.agents, env, state, hand)
 
                 assert self.agents[0].total_points == env.scores[0]
