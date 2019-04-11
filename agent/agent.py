@@ -32,7 +32,7 @@ class Agent:
         self.reward = []
 
     def _reset_current_data(self):
-        self.current_data = [None, None]
+        self.current_data = [None, 0]
 
     def store_state(self, state, idx_choice):
         if self.current_data[0] is not None:
@@ -40,11 +40,7 @@ class Agent:
         self.current_data[0] = (state, idx_choice)
 
     def store_reward(self, reward):
-        if self.current_data[1] is None:
-            self.current_data[1] = reward
-        else:
-            self.current_data[1] += reward
-
+        self.current_data[1] += reward
         self.reward.append(reward)
 
     def append_data(self, hand_no, phase, no_state=False):
