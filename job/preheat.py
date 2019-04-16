@@ -1,4 +1,4 @@
-from ..agent.value_function.conv import Conv
+from ..agent.value_function.conv import Conv, stack_to_numpy
 from ..agent.value_function.lstm import ConvLstm
 from .job import Job
 from .register import register
@@ -84,7 +84,7 @@ def train_conv(args):
     y = np.empty((total_comb, 1), dtype=np.float32)
     for i, cards in tqdm.tqdm(enumerate(all_comb), total=total_comb):
         stack = Stack(list(cards))
-        tarot = Conv.stack_to_numpy(stack)
+        tarot = stack_to_numpy(stack)
         X_tarot[i] = tarot
         y[i] = evaluate_cards(stack)
 
@@ -96,7 +96,10 @@ def train_conv(args):
     X_train, y_train = X_tarot[train_idx], y[train_idx]
     X_test, y_test = X_tarot[test_idx], y[test_idx]
 
-    conv = Conv(out_channels=5)
+    X_train_0 = np.zeros((len(X_train), 1), dtype=np.float32)
+    X_test_0 = np.zeros((len(X_test), 1), dtype=np.float32)
+
+    conv = Conv(out_channels=5, with_dealer=True)
     model = Model(
         conv,
         torch.optim.SGD(
@@ -112,8 +115,8 @@ def train_conv(args):
         model.cuda(args.cuda)
 
     model.fit(
-        X_train, y_train,
-        validation_x=X_test,
+        (X_train, X_train_0), y_train,
+        validation_x=(X_test, X_test_0),
         validation_y=y_test,
         epochs=args.epochs,
         batch_size=args.batch_size,

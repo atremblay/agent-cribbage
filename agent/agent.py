@@ -67,7 +67,7 @@ class Agent:
         return '_'.join([str(v.custom_hash) for v in self.policies]+[str(v.custom_hash) for v in self.value_functions])
 
     def load_checkpoint(self, checkpoint_file):
-        checkpoint = torch.load(checkpoint_file)
+        checkpoint = torch.load(checkpoint_file, map_location=lambda storage, loc: storage)
         self.init_optimizer()
         for v, v_state in zip(self.value_functions, checkpoint['model_state_dict']):
             v.load_state_dict(v_state)

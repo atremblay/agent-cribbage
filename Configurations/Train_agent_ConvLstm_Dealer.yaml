@@ -1,9 +1,9 @@
 Agents:
   - number: 2
-    file:
+    file: conv.pkl
     kwargs:
       value_functions:
-        - {class: Conv, kwargs: {out_channels: 15, with_dealer: True}}
+        - {class: Conv, kwargs: {out_channels: 5, with_dealer: True}}
         - {class: ConvLstm, kwargs: {}}
       optimizers:
         - {class: Adam, kwargs: {lr: 5.0e-5}}
