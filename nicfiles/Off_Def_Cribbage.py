@@ -202,8 +202,10 @@ def Policy(VF, S, epsilon):
         test_fr = feature_representation_HTA(test_hand, test_table, card)
         tests[i] = VF(test_fr)
         
-    return hand[int(tests.argmax())]
+  #  return hand[int(tests.argmax())]
 
+    return np.random.choice([ hand[int(tests.argmax())] , np.random.choice(hand) ], \
+                                  p=[1-epsilon, epsilon])
 
 #%%
 
@@ -337,15 +339,15 @@ ddd = make_data_Off_Def(Q, env, epsilon=0.1, qt=100000)
 
 #%%%
  
-import pickle
-
-with open('OffDef100kdata.pickle', 'wb') as f:
-    pickle.dump(ddd, f)
-
-
-
-
-
+#import pickle
+#
+#with open('OffDef100kdata.pickle', 'wb') as f:
+#    pickle.dump(ddd, f)
+#
+#
+#
+#
+#
 
 
 
@@ -360,7 +362,7 @@ with open('OffDef100kdata.pickle', 'wb') as f:
 for boucle in range(50):
         
     # Create new data
-    ddd_new = make_data_Off_Def(Q, env, epsilon=0.05, qt=20000)
+    ddd_new = make_data_Off_Def(Q, env, epsilon=0.1, qt=10000)
   
     
     # Put new data at the end
@@ -390,7 +392,7 @@ for boucle in range(50):
     
     
     ######## CREATE MODEL
-    optimizer = torch.optim.Adam(Q.parameters(), lr = 0.01)#, momentum=0.9, nesterov=True)
+    optimizer = torch.optim.SGD(Q.parameters(), lr = 0.01, momentum=0.9, nesterov=True)
     criterion = nn.MSELoss()
     
     ######## RUN TRAINING AND VALIDATION 
@@ -398,7 +400,7 @@ for boucle in range(50):
     train_losses = []
     valid_losses = []
     
-    for epoch in range(50):
+    for epoch in range(10):
         
         train_loss = Train(train_loader, Q, criterion, optimizer, 'cpu') #args.DEVICE)
         eval_loss = Eval(valid_loader, Q, criterion, 'cpu') #args.DEVICE)
@@ -411,7 +413,7 @@ for boucle in range(50):
               epoch, train_loss, eval_loss))
         
         # Patience - Stop if the Model didn't improve in the last 'patience' epochs
-        patience = 3  # args.patience
+        patience = 5  # args.patience
 
         if len(valid_losses) - valid_losses.index(min(valid_losses)) > patience:
             print('--------------------------------------------------------------------------------')
@@ -433,49 +435,49 @@ for boucle in range(50):
                     'optimizer': optimizer.state_dict(),
                     'losses': losses
                     }
-            torch.save(state, './Results/Off_Def_B_lr_NEWNEWDATA.pth')
+            torch.save(state, './Results/Off_Def_GoodPolicy.pth')
             print('...saved\n\n')
                 
     
 
 #%%
 
-i=0            
-
-for j in range(10):
-                
-    print(to_card([ddd[i]]))
-    print(Q(ddd[i][0]))    
-        
-    i = int(input('next?'))    
-    
-
-#%%
-    
-d99104 = ddd[99104][0]
-
-#%%
-
-d99104[-2] = 0
-d99104[-9] = 0 
-d99104[-10] = 1  
-
-#%%
-c1 = gym_cribbage.envs.cribbage_env.Card(4,"♦︎")
-c2 = gym_cribbage.envs.cribbage_env.Card('Q','♣︎')
-ct1 = gym_cribbage.envs.cribbage_env.Card('K',"♥︎")
-ct2 = gym_cribbage.envs.cribbage_env.Card(4,"♣︎")
-
-hand = gym_cribbage.envs.cribbage_env.Stack([c1, c2])
-table = gym_cribbage.envs.cribbage_env.Stack([ct1, ct2])
-
-
-
-#%%
-
-
-
-Policy(VF, S, epsilon)
+#i=0            
+#
+#for j in range(10):
+#                
+#    print(to_card([ddd[i]]))
+#    print(Q(ddd[i][0]))    
+#        
+#    i = int(input('next?'))    
+#    
+#
+##%%
+#    
+#d99104 = ddd[99104][0]
+#
+##%%
+#
+#d99104[-2] = 0
+#d99104[-9] = 0 
+#d99104[-10] = 1  
+#
+##%%
+#c1 = gym_cribbage.envs.cribbage_env.Card(4,"♦︎")
+#c2 = gym_cribbage.envs.cribbage_env.Card('Q','♣︎')
+#ct1 = gym_cribbage.envs.cribbage_env.Card('K',"♥︎")
+#ct2 = gym_cribbage.envs.cribbage_env.Card(4,"♣︎")
+#
+#hand = gym_cribbage.envs.cribbage_env.Stack([c1, c2])
+#table = gym_cribbage.envs.cribbage_env.Stack([ct1, ct2])
+#
+#
+#
+##%%
+#
+#
+#
+#Policy(VF, S, epsilon)
     
 #%%
 
