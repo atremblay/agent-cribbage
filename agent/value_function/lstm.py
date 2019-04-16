@@ -61,13 +61,15 @@ class LSTM(ValueFunction):
 
 @register
 class ConvLstm(ValueFunction):
-    def __init__(self):
+    def __init__(self, split_discarded=False):
         """
         Simple LSTM that only takes the cards face up. We do not include
         face down here, thereby reducing the number of possible states.
         """
         super().__init__()
-
+        self.split_discarded = split_discarded
+        if not self.split_discarded:
+            self.forward_arg_size -= 1
         self.conv2 = nn.Sequential(
             nn.ZeroPad2d((0, 0, 1, 0)),
             nn.Conv2d(
@@ -102,18 +104,24 @@ class ConvLstm(ValueFunction):
         )
 
         self.lstm = nn.LSTM(
-            input_size=45+13,
+            input_size=45 + 13,
             hidden_size=104,
             num_layers=2,
             batch_first=True
         )
 
         # Logistic Regression
+        num_dim = 104  # LSTM outputs
+        num_dim += 13  # Hand
+        num_dim += 13  # Discarded
+        if self.split_discarded:
+            num_dim += 13  # Discarded cards are separated between players
+
         self.clf = nn.Sequential(
-            nn.Linear(104+52+13, 104+52+13),
+            nn.Linear(num_dim, num_dim),
             nn.LeakyReLU(),
             nn.Dropout(),
-            nn.Linear(104+52+13, 52),
+            nn.Linear(num_dim, 52),
             nn.LeakyReLU(),
             nn.Dropout(),
             nn.Linear(52, 1),
@@ -122,7 +130,12 @@ class ConvLstm(ValueFunction):
         self.custom_hash = __name__ + 'V0.0.0'  # Change version when network is changed
         self.apply(self.weights_init)
 
-    def forward(self, x, discarded, hand):
+    def forward(self, x, hand, discarded, discarded_other=None):
+        if self.split_discarded and discarded_other is None:
+            raise Exception(
+                "`discarded_other` should be provided since you set "
+                "`split_discarded=True`"
+            )
 
         lengths = x.sum(dim=1).sum(dim=1).cpu().numpy()
         sorted_idx = torch.tensor(np.argsort(lengths)[::-1].copy())
@@ -158,7 +171,6 @@ class ConvLstm(ValueFunction):
             batch_first=True
         )
 
-
         # Extract the outputs for the last timestep of each example
         idx = (torch.LongTensor(sorted_len) - 1).view(-1, 1)
         if x.is_cuda:
@@ -177,7 +189,10 @@ class ConvLstm(ValueFunction):
         last_output = last_output[np.argsort(sorted_idx)]
 
         # out = out[:, -1, :][np.argsort(sorted_idx)]  # Only keeps last value of sequence
-        out = self.clf(torch.cat((last_output, discarded, hand), dim=1))
+        to_cat = [last_output, hand, discarded]
+        if self.split_discarded:
+            to_cat.append(discarded_other)
+        out = self.clf(torch.cat(to_cat, dim=1))
         return out
 
     @staticmethod
@@ -185,7 +200,6 @@ class ConvLstm(ValueFunction):
         if isinstance(stacks, Stack):
             stacks = [stacks]
 
-        max_len = max([len(s) for s in stacks])
         batch_size = len(stacks)
         x = np.zeros((batch_size, 8, 13), dtype=np.float32)
 
@@ -203,9 +217,36 @@ class ConvLstm(ValueFunction):
         hand = np.array([state.hand.remove(c).compact_state[1].sum(axis=1) for c in state.hand])
 
         # Store state for data generation.
-        after_state = [choices,
-                       np.repeat(np.expand_dims(env.discarded.state, axis=0), len(state.hand), axis=0).astype(
-                           'float32'),
-                       hand]
+        after_state = [choices, hand]
+        cards_have_no_player = [card.player is None for card in env.discarded]
+        if any(cards_have_no_player) and self.split_discarded:
+            raise Exception("At least one card had no player.")
+
+        if self.split_discarded:
+            discarded_player_0 = np.zeros((1, 13), dtype=np.float32)
+            discarded_player_1 = np.zeros((1, 13), dtype=np.float32)
+            for card in env.discarded:
+                if card.player == 0:
+                    discarded_player_0 += card.compact_state[1]
+                else:
+                    discarded_player_1 += card.compact_state[1]
+
+            # The player playing knows what he put in the crib. Add this
+            # information to the discarded stack
+            for card in env.crib:
+                if card.player != env.player:
+                    continue
+                if card.player == 0:
+                    discarded_player_0 += card.compact_state[1]
+                elif card.player == 1:
+                    discarded_player_1 += card.compact_state[1]
+
+            after_state.append(np.repeat(discarded_player_0, len(state.hand), axis=0))
+            after_state.append(np.repeat(discarded_player_1, len(state.hand), axis=0))
+        else:
+            discarded = np.zeros((1, 13), dtype=np.float32)
+            for card in env.discarded:
+                discarded += card.compact_state[1]
+            after_state.append(np.repeat(discarded, len(state.hand), axis=0))
 
         return after_state

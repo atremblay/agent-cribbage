@@ -8,7 +8,7 @@ from gym_cribbage.envs.cribbage_env import (
     Deck,
     evaluate_cards,
     evaluate_table,
-    RANKS, 
+    RANKS,
     SUITS
 )
 from itertools import combinations
