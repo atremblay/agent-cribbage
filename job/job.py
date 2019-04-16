@@ -88,6 +88,7 @@ class Job:
                 for v in agent.value_functions:
                     if self['cuda'] != -1:
                         v.cuda(self['cuda'])
+                    print(v)
 
                 if shared_agent['file'] is not None:
                     self['epoch_start'] = agent.load_checkpoint(shared_agent['file'])
