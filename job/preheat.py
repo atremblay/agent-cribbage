@@ -1,4 +1,4 @@
-from ..agent.value_function.conv import Conv
+from ..agent.value_function.conv import Conv, stack_to_numpy
 from ..agent.value_function.lstm import ConvLstm
 from .job import Job
 from .register import register
@@ -8,7 +8,7 @@ from gym_cribbage.envs.cribbage_env import (
     Deck,
     evaluate_cards,
     evaluate_table,
-    RANKS, 
+    RANKS,
     SUITS
 )
 from itertools import combinations
@@ -64,6 +64,13 @@ class Preheat(Job):
         )
 
         self.parser.add_argument(
+            "--with_dealer",
+            help="Include dealer in the state",
+            default=False,
+            action='store_true'
+        )
+
+        self.parser.add_argument(
             "--model",
             help="Type of model to train",
             choices=["conv", "lstm"]
@@ -84,7 +91,7 @@ def train_conv(args):
     y = np.empty((total_comb, 1), dtype=np.float32)
     for i, cards in tqdm.tqdm(enumerate(all_comb), total=total_comb):
         stack = Stack(list(cards))
-        tarot = Conv.stack_to_numpy(stack)
+        tarot = stack_to_numpy(stack)
         X_tarot[i] = tarot
         y[i] = evaluate_cards(stack)
 
@@ -96,7 +103,8 @@ def train_conv(args):
     X_train, y_train = X_tarot[train_idx], y[train_idx]
     X_test, y_test = X_tarot[test_idx], y[test_idx]
 
-    conv = Conv(out_channels=5)
+    conv = Conv(out_channels=15, with_dealer=args.with_dealer)
+    print(conv)
     model = Model(
         conv,
         torch.optim.SGD(
@@ -104,12 +112,20 @@ def train_conv(args):
             lr=args.lr,
             momentum=0.9
         ),
-        'mse',
-        metrics=['mse']
+        'mse'
     )
 
     if args.cuda is not None:
         model.cuda(args.cuda)
+
+    if args.with_dealer:
+        dealer_train = np.random.random((X_train.shape[0], 1)) > 0.5
+        dealer_train = torch.tensor(dealer_train.astype(np.float32))
+        X_train = (X_train, dealer_train)
+
+        dealer_test = np.random.random((X_test.shape[0], 1)) > 0.5
+        dealer_test = torch.tensor(dealer_test.astype(np.float32))
+        X_test = (X_test, dealer_test)
 
     model.fit(
         X_train, y_train,

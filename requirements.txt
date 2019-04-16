@@ -4,5 +4,5 @@ torchvision
 pyyaml
 matplotlib
 tqdm
-poutyne
+-e git://github.com/gbmarc1/poutyne.git@1fd11e2337635f813b92c948d952f6a2291b3db0#egg=poutyne
 sklearn
