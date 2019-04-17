@@ -217,7 +217,7 @@ def feature_representation_Full(state, env, action):
     # Action
     fr[10*13+action.rank_value-1] = 1
         
-    return fr
+    return fr.to(DEVICE)
 
 
 #%%
