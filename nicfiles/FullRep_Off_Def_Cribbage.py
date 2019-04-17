@@ -540,7 +540,7 @@ for boucle in range(args.boucle):
             'optimizer': optimizer.state_dict(),
             'nb_wins': nb_wins
             }
-    torch.save(state, './Results/FullRepOffDef'+args.id+'.pth')
+    torch.save(state, './Results/FullRepOffDef_'+args.id+'.pth')
     print('...saved\n\n')
                 
     
