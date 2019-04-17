@@ -16,13 +16,39 @@ import gym
 import gym_cribbage
 import random
 import copy
-from tqdm import tqdm
 import numpy as np
 import torch
 from torch.utils import data
 import torch.nn as nn
+import argparse
+# To use Orion
+from orion.client import report_results
+import sys
+
+print(sys.argv)
 
 env = gym.make('cribbage-v0')
+
+#%%
+
+######## Setting args
+parser = argparse.ArgumentParser(description='Cribbage Trainning with Full representation, Reward Offensive-Defensive')
+parser.add_argument('--id', type=str, metavar='', required=True, help='ID of experience. Will be used when saving file.')
+parser.add_argument('--lr', type=float, metavar='', default=0.01, help='Initial learning rate')
+parser.add_argument('--lrdecay', type=float, metavar='', default=1, help='Amount of decay per boucle')
+parser.add_argument('--epsilon', type=float, metavar='', default=0.1, help='Initial epsilon-greedy policy')
+parser.add_argument('--epsidecay', type=float, metavar='', default=1, help='Amount of decay per boucle')
+parser.add_argument('--initdata', type=int, metavar='', default=90000, help='Number of data initialy used')
+parser.add_argument('--batch', type=int, metavar='', default=64, help='Batch size')
+parser.add_argument('--boucle', type=int, metavar='', default=200, help='Number of boucle')
+
+args = parser.parse_args()
+
+
+######## CUDA AVAILABILITY CHECK
+if torch.cuda.is_available(): DEVICE = 'cuda'
+else: DEVICE = 'cpu'
+
 
 #%%
 
@@ -132,11 +158,6 @@ def Eval(valid_loader, model, criterion, DEVICE):
 
 
 
-
-
-
-
-
 def skip_start(env):
     """ 
     Remove 2 cards from each hands. 
@@ -150,34 +171,6 @@ def skip_start(env):
         state, _, _, _ = env.step(env.hands[player][0])
     return state
 
-
-
-
-
-def feature_representation_HTA(hand, table, action):
-    """
-    Turns a hand, table, action (HTA) in it's 
-    feature represnatation for Q, i.e. a 
-    vectors of 12*13 long, where bloc
-        0-4/12 = hand. Sorted (to reduce variability)
-        5-11/12 = table
-        12 = action
-    Use only rank of cards. 
-    """
-    fr = torch.zeros(13*12)
-    # Hand
-    hand = [c.rank_value for c in hand]
-    hand.sort()   
-    for i, c in enumerate(hand):
-        fr[i*13+c-1] = 1
-    # Table
-    for i, c in enumerate(table):
-        i += 4
-        fr[i*13+c.rank_value-1] = 1
-    # Action
-    fr[11*13+action.rank_value-1] = 1
-        
-    return fr
 
 
 
@@ -333,8 +326,68 @@ def make_data_Off_Def(VF, env, epsilon=0.1, qt=1):
     return data
 
 
+"""
+TO PLAY
+"""
 
 
+def id_best_card_to_play(env):
+    """
+    Get the best card to play according to active player 
+    plus reward associate
+    """
+    best_reward = 0
+    best_card = random.choice(env.state.hand)
+    env_start = copy.deepcopy(env)
+    for card in (env_start.state.hand):
+        _,reward,_,_ = env_start.step(card)
+        if reward > best_reward:
+            best_reward = reward
+            best_card = card
+        # Come back to initial env
+        env_start = copy.deepcopy(env)
+    return best_card
+
+
+def PlayDeterministic(env, VF):
+    env.reset()
+    S_partial = skip_start(env)     
+
+    R1 = 0
+    R2 = 0
+    
+    while env.phase == 1:
+        #print(env.player, S_partial.hand)
+
+        # who is playing
+        if env.player == 0: 
+            # What to play
+            A = Policy(VF, (S_partial, env), 0)
+        else:
+            # Deterministic player
+            A = id_best_card_to_play(env)
+            
+       # print(env.player, A)
+        # Play it
+        
+        S_partial, R, _, _ = env.step(A)
+        
+        if S_partial.reward_id == 0: R1 += R
+        else: R2 += R
+        
+    #print(R1, R2)
+    
+    if R1 > R2: value = 1
+    elif R1 == R2: value = 0.5
+    else: value =0 
+        
+    return value
+
+
+
+"""
+OTHERS
+"""
 
 
 def Splitting(l_items, ratio_1, ratio_2, ratio_3):
@@ -379,10 +432,10 @@ def to_card(data):
 
 #%%
     
-Q = DeeperFF()
+Q = DeeperFF().to(DEVICE)
 
 #%%
-ddd = make_data_Off_Def(Q, env, epsilon=0.1, qt=90000)
+ddd = make_data_Off_Def(Q, env, epsilon=args.epsilon, qt=args.initdata)
 
 #%%%
  
@@ -400,25 +453,22 @@ ddd = make_data_Off_Def(Q, env, epsilon=0.1, qt=90000)
 
 
 
-
-
-
-
 #%%
+
+nb_wins = np.zeros(args.boucle)
         
-for boucle in range(50):
+for boucle in range(args.boucle):
         
     # Create new data
-    ddd_new = make_data_Off_Def(Q, env, epsilon=0.1, qt=10000)
+    ddd_new = make_data_Off_Def(Q, env, epsilon=(args.epsidecay**boucle)*args.epsilon, qt=int(0.1*args.initdata))
   
-    
     # Put new data at the end
     new_idx = len(ddd) - len(ddd_new)
     ddd[0:new_idx] = ddd[len(ddd_new):]
     ddd[new_idx:] = ddd_new
     
          
-    print('\n########################### boucle ', boucle, ' ###################################/n')
+    print('\n########################### boucle ', boucle, ' ###################################\n')
   
     
     # Split train / valid
@@ -439,100 +489,73 @@ for boucle in range(50):
     
     
     ######## CREATE MODEL
-    optimizer = torch.optim.SGD(Q.parameters(), lr = 0.01, momentum=0.9, nesterov=True)
+    optimizer = torch.optim.Adam(Q.parameters(), lr = (args.lrdecay**boucle)*args.lr)#, momentum=0.9, nesterov=True)
     criterion = nn.MSELoss()
     
     ######## RUN TRAINING AND VALIDATION 
     
-    train_losses = []
-    valid_losses = []
+   # train_losses = []
+   # valid_losses = []
     
-    for epoch in range(10):
+   # for epoch in range(1):
         
-        train_loss = Train(train_loader, Q, criterion, optimizer, 'cpu') #args.DEVICE)
-        eval_loss = Eval(valid_loader, Q, criterion, 'cpu') #args.DEVICE)
+    train_loss = Train(train_loader, Q, criterion, optimizer, DEVICE)
+    
+    plays=1000
+    l_win = np.zeros(plays)  
+    
+    for i in range(plays):
+        win = PlayDeterministic(env, Q)
+        l_win[i] = win
+        
+    nb_wins[boucle] = l_win.sum()
+     #  eval_loss = Eval(valid_loader, Q, criterion, DEVICE)
        
-        train_losses.append(train_loss)
-        valid_losses.append(eval_loss)
-        losses = [train_losses, valid_losses]  
+      #  train_losses.append(train_loss)
+      #  valid_losses.append(eval_loss)
+      #  losses = [train_losses, valid_losses]  
         
-        print('\n==> Epoch: {} \n======> Train loss: {:.4f}\n======> Valid loss: {:.4f}'.format(
-              epoch, train_loss, eval_loss))
+      #  print('\n==> Epoch: {} \n======> Train loss: {:.4f}\n======> Valid loss: {:.4f}'.format(
+      #        epoch, train_loss, eval_loss))
         
         # Patience - Stop if the Model didn't improve in the last 'patience' epochs
-        patience = 5  # args.patience
+      #  patience = 1  # args.patience
 
-        if len(valid_losses) - valid_losses.index(min(valid_losses)) > patience:
-            print('--------------------------------------------------------------------------------')
-            print('-                               STOPPED TRAINING                               -')
-            print('-  Recent valid losses:', valid_losses[-patience:])
-            print('--------------------------------------------------------------------------------')
-            break
+      #  if len(valid_losses) - valid_losses.index(min(valid_losses)) > patience:
+      #      print('--------------------------------------------------------------------------------')
+      #      print('-                               STOPPED TRAINING                               -')
+      #      print('-  Recent valid losses:', valid_losses[-patience:])
+      #      print('--------------------------------------------------------------------------------')
+      #      break
     
         
         # Save fisrt model and only if it improves on valid data after   
-        precedent_losses = valid_losses[:-1]
-        if precedent_losses == []: precedent_losses = [0]     # Cover 1st epoch for min([])'s error
-        if epoch == 0 or eval_loss < min(precedent_losses):
-            print('Saving...')
-            state = {
-                    'epoch': epoch,
-                    'eval_loss': eval_loss,
-                    'state_dict': Q.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'losses': losses
-                    }
-            torch.save(state, './Results/FullRepOffDef.pth')
-            print('...saved\n\n')
+      #  precedent_losses = valid_losses[:-1]
+      #  if precedent_losses == []: precedent_losses = [0]     # Cover 1st epoch for min([])'s error
+      #  if epoch == 0 or eval_loss < min(precedent_losses):
+    print('Saving...')
+    state = {
+            'boucle': boucle,
+            'state_dict': Q.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'nb_wins': nb_wins
+            }
+    torch.save(state, './Results/FullRepOffDef'+args.id+'.pth')
+    print('...saved\n\n')
                 
     
 
-#%%
-
-#i=0            
-#
-#for j in range(10):
-#                
-#    print(to_card([ddd[i]]))
-#    print(Q(ddd[i][0]))    
-#        
-#    i = int(input('next?'))    
-#    
-#
-##%%
-#    
-#d99104 = ddd[99104][0]
-#
-##%%
-#
-#d99104[-2] = 0
-#d99104[-9] = 0 
-#d99104[-10] = 1  
-#
-##%%
-#c1 = gym_cribbage.envs.cribbage_env.Card(4,"♦︎")
-#c2 = gym_cribbage.envs.cribbage_env.Card('Q','♣︎')
-#ct1 = gym_cribbage.envs.cribbage_env.Card('K',"♥︎")
-#ct2 = gym_cribbage.envs.cribbage_env.Card(4,"♣︎")
-#
-#hand = gym_cribbage.envs.cribbage_env.Stack([c1, c2])
-#table = gym_cribbage.envs.cribbage_env.Stack([ct1, ct2])
-#
-#
-#
-##%%
-#
-#
-#
-#Policy(VF, S, epsilon)
+    
     
 #%%
+            
+    
+# For Orion, print results (MongoDB,...)
+report_results([dict(
+    name='NEG_Avrg_wins_last_50_boucles_on_1000',
+    type='objective',
+    value=-nb_wins[-50:].mean())])
 
-
-    
-    
-    
-    
     
     
     
