@@ -272,7 +272,7 @@ def make_data_Off_Def(VF, env, epsilon=0.1, qt=1):
     data = []
     
     for d in range(qt):
-        if d%1000 == 0: print(d)
+        if d%10000 == 0: print(d)
        
         """ Initialisation """
         env.reset()
@@ -485,7 +485,7 @@ for boucle in range(args.boucle):
     ddd[new_idx:] = ddd_new
     
          
-    print('\n########################### boucle ', boucle, ' ###################################\n')
+    print('########################### boucle ', boucle, ' ###################################\n')
   
     
     # Split train / valid
@@ -550,7 +550,7 @@ for boucle in range(args.boucle):
       #  precedent_losses = valid_losses[:-1]
       #  if precedent_losses == []: precedent_losses = [0]     # Cover 1st epoch for min([])'s error
       #  if epoch == 0 or eval_loss < min(precedent_losses):
-    print('Saving...')
+  #  print('Saving...')
     state = {
             'boucle': boucle,
             'state_dict': Q.state_dict(),
@@ -558,7 +558,7 @@ for boucle in range(args.boucle):
             'nb_wins': nb_wins
             }
     torch.save(state, './Results/FullRepOffDef_'+args.id+'.pth')
-    print('...saved\n\n')
+  #  print('...saved\n\n')
                 
     
 
