@@ -462,7 +462,7 @@ for boucle in range(args.boucle):
         
     # Create new data
     ddd_new = make_data_Off_Def(Q, env, epsilon=(args.epsidecay**boucle)*args.epsilon, \
-                                qt=int(args.replacedata)*int(args.initdata))
+                                qt=float(args.replacedata)*int(args.initdata))
   
     # Put new data at the end
     new_idx = len(ddd) - len(ddd_new)
