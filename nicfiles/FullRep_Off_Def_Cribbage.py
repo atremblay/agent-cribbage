@@ -38,12 +38,27 @@ parser.add_argument('--lr', type=float, metavar='', default=0.01, help='Initial 
 parser.add_argument('--lrdecay', type=float, metavar='', default=1, help='Amount of decay per boucle')
 parser.add_argument('--epsilon', type=float, metavar='', default=0.1, help='Initial epsilon-greedy policy')
 parser.add_argument('--epsidecay', type=float, metavar='', default=1, help='Amount of decay per boucle')
-parser.add_argument('--initdata', type=str, metavar='', default='10000', help='Number of data initialy used')
-parser.add_argument('--replacedata', type=str, metavar='', default='0.1', help='Ratio of data replacement by boucle')
+parser.add_argument('--initdata', type=int, metavar='', default='1', help='Categorical indicate: Number of data initialy used')
+parser.add_argument('--replacedata', type=int, metavar='', default='1', help='Categorical indicate: Ratio of data replacement by boucle')
 parser.add_argument('--batch', type=int, metavar='', default=64, help='Batch size')
 parser.add_argument('--boucle', type=int, metavar='', default=200, help='Number of boucle')
 
 args = parser.parse_args()
+
+####### ADJUST agrs for data (because Orions' choice are not working)
+if args.initdata == 1:
+    args.initdata = 10000
+elif args.initdata == 2:
+    args.initdata = 45000
+else: args.initdata = 90000
+
+if args.replacedata == 1:
+    args.replacedata = 0.1
+elif args.replacedata == 2:
+    args.replacedata = 0.2
+else: args.replacedata = 0.5
+
+
 
 
 ######## CUDA AVAILABILITY CHECK
@@ -436,7 +451,7 @@ def to_card(data):
 Q = DeeperFF().to(DEVICE)
 
 #%%
-ddd = make_data_Off_Def(Q, env, epsilon=args.epsilon, qt=int(args.initdata))
+ddd = make_data_Off_Def(Q, env, epsilon=args.epsilon, qt=args.initdata)
 
 #%%%
  
@@ -462,7 +477,7 @@ for boucle in range(args.boucle):
         
     # Create new data
     ddd_new = make_data_Off_Def(Q, env, epsilon=(args.epsidecay**boucle)*args.epsilon, \
-                                qt=int(float(args.replacedata)*int(args.initdata)))
+                                qt=int(args.replacedata*args.initdata))
   
     # Put new data at the end
     new_idx = len(ddd) - len(ddd_new)
