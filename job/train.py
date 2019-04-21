@@ -147,6 +147,8 @@ class Train(Job):
         training_contexts = []
         for i, (value_function, policy) in enumerate(zip(agent.value_functions, agent.policies)):
 
+            policy.step()  # Policy scheduler
+
             # If value function needs trainings
             if value_function.need_training:
                 algorithm = algorithm_registry[agent.algorithms[i]['class']](data_files, value_function, policy, **agent.algorithms[i]['kwargs'])

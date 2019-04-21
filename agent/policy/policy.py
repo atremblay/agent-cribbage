@@ -17,3 +17,6 @@ class Policy:
         :return:
         """
         pass
+
+    def step(self):
+        pass

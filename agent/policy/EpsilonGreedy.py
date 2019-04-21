@@ -8,13 +8,17 @@ import torch
 @register
 class EpsilonGreedy(Policy):
 
-    def __init__(self, epsilon):
+    def __init__(self, epsilon, decay=1.0):
         self.epsilon = epsilon
+        self.decay = decay
         super(EpsilonGreedy).__init__()
 
     @property
     def custom_hash(self):
         return __name__+str(self.epsilon)
+
+    def step(self):
+        self.epsilon = self.decay*self.epsilon
 
     def prob(self, V_s):
         if self.epsilon <= random.uniform(0, 1):
