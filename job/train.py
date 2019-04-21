@@ -71,6 +71,10 @@ class Train(Job):
                         s.step()
                         self.logger.info(s.get_lr())
 
+                for p in a.policies:
+                    if p is not None:
+                        p.step()
+
         self.agents[0].save_checkpoint(self.get_checkpoint_file(epoch), epoch)
 
     @property
@@ -146,8 +150,6 @@ class Train(Job):
 
         training_contexts = []
         for i, (value_function, policy) in enumerate(zip(agent.value_functions, agent.policies)):
-
-            policy.step()  # Policy scheduler
 
             # If value function needs trainings
             if value_function.need_training:
