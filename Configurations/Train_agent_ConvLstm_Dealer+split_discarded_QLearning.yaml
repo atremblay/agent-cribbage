@@ -1,6 +1,6 @@
 Agents:
   - number: 2
-    file: Train_agent_ConvLstm_Dealer+split_discarded/Train_agent_ConvLstm_Dealer+split_discarded_202.tar
+    file: conv.pkl
     kwargs:
       value_functions:
         - {class: Conv, kwargs: {out_channels: 15, with_dealer: True}}
@@ -13,8 +13,8 @@ Agents:
         - {class: NStep_QLearning, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.05},
+           kwargs: {epsilon: 0.05, decay: 0.995},
            callback: {name: choose_phase0, kwargs: {}}}
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.05},
+           kwargs: {epsilon: 0.05, decay: 0.995},
            callback: {name: choose_phase1, kwargs: {}}}
