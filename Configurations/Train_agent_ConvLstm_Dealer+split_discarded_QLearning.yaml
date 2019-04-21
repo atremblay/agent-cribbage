@@ -7,10 +7,10 @@ Agents:
         - {class: ConvLstm, kwargs: {split_discarded: True}}
       optimizers:
         - {class: Adam, kwargs: {lr: 5.0e-5}}
-        - {class: Adam, kwargs: {lr: 5.0e-4}}
+        - {class: Adam, kwargs: {lr: 7.0e-4}}
       algorithms:
         - {class: AllRewards_Phase0, kwargs: {}}
-        - {class: NStep_QLearning, kwargs: {}}
+        - {class: NStep_QLearning, kwargs: {reward_data: 'offensive_defensive'}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.05, decay: 0.995},

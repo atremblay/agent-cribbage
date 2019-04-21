@@ -44,7 +44,7 @@ class NStep_Phase1(Algorithm):
         data = []
         for hand, hand_data in file_data['data'][1].items():
 
-            for i, ((s_i, idx_choice), R_i_plus_1) in enumerate(file_data['data'][1][hand]):
+            for i, ((s_i, idx_choice), R_i_plus_1) in enumerate(hand_data):
 
                 R_i_plus_1 = R_i_plus_1[self.reward_data]
                 boot_strap_idx = len(hand_data) if self.n_step is None else min(i+self.n_step, len(hand_data))

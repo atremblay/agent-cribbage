@@ -7,8 +7,6 @@ Agents:
         - {class: ConvLstm, kwargs: {split_discarded: True}}
       optimizers: []
       algorithms:
-        - {class: AllRewards_Phase0, kwargs: {}}
-        - {class: OneStep_ExpectedSarsa, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
            kwargs: {epsilon: 0.0},
