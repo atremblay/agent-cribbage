@@ -120,10 +120,10 @@ class ConvLstm(ValueFunction):
         self.clf = nn.Sequential(
             nn.Linear(num_dim, num_dim),
             nn.LeakyReLU(),
-            nn.Dropout(),
+            #nn.Dropout(),
             nn.Linear(num_dim, 52),
             nn.LeakyReLU(),
-            nn.Dropout(),
+            #nn.Dropout(),
             nn.Linear(52, 1),
         )
         # Before applying weights

@@ -92,7 +92,7 @@ class Agent:
         for i, o in enumerate(self.optimizers_define):
             if self.value_functions[i].need_training:
                 opt = getattr(torch.optim, o['class'])(self.value_functions[i].parameters(), **o['kwargs'])
-                scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.995)
+                scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.990)
                 self.optimizers.append(opt)
                 self.scheduler.append(scheduler)
             else:
