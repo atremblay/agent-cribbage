@@ -33,9 +33,10 @@ class AllRewards_Phase0(Algorithm):
         return {'Dataset': data}
 
 
-
-class OneStep_Phase1(Algorithm):
-    def __init__(self, data_files, value_function, policy):
+@register
+class NStep_Phase1(Algorithm):
+    def __init__(self, data_files, value_function, policy, n_step=1):
+        self.n_step = n_step
         super().__init__(data_files, value_function, policy)
 
     def _preprocess_file(self, file_data):
@@ -44,9 +45,14 @@ class OneStep_Phase1(Algorithm):
 
             for i, ((s_i, idx_choice), R_i_plus_1) in enumerate(file_data['data'][1][hand]):
 
+                boot_strap_idx = len(hand_data) if self.n_step is None else min(i+self.n_step, len(hand_data))
+
+                for j in range(i+1, boot_strap_idx):
+                    R_i_plus_1 += hand_data[j][1]
+
                 s_prime = [None, None]
-                if i < len(hand_data)-1:
-                    s_prime = hand_data[i+1][0]
+                if boot_strap_idx < len(hand_data):
+                    s_prime = hand_data[boot_strap_idx][0]
 
                 s_i_choice = [n[idx_choice] for n in s_i]
 
@@ -68,23 +74,20 @@ class OneStep_Phase1(Algorithm):
         s_i, reward = self.deformat(default_collate(s_i_reward_batch))[:-1]
         return s_i, reward, s_prime
 
-
 @register
-class OneStep_Sarsa(OneStep_Phase1):
+class NStep_Sarsa(NStep_Phase1):
 
     def operator(self, values, idx_choosen):
         return values[idx_choosen]
 
-
 @register
-class OneStep_QLearning(OneStep_Phase1):
+class NStep_QLearning(NStep_Phase1):
 
     def operator(self, values, idx_choosen):
         return values.max()
 
-
 @register
-class OneStep_ExpectedSarsa(OneStep_Phase1):
+class NStep_ExpectedSarsa(NStep_Phase1):
 
     def operator(self, values, idx_choosen):
         prob = device(self.policy.get_transition_probabilities(values))

@@ -105,15 +105,12 @@ class Train(Job):
                     # Device context
                     s_i, reward = [device(s) for s in s_i], device(reward)
 
-                    if len(s_primes) > 0:
-                        bootstrap_value = device(torch.zeros(len(s_primes), dtype=torch.float32))
-                        for i_sample, (s_prime, idx_choice) in enumerate(s_primes):
-                            # Bootstrapping Value Evaluation
-                            if s_prime is not None:
-                                s_prime = [device(s) for s in s_prime]
-                                bootstrap_value[i_sample] = context['algorithm'].operator(old_value_function(*s_prime).flatten().detach(), idx_choice)
-                            else:
-                                bootstrap_value[i_sample] = 0
+                    bootstrap_value = device(torch.zeros(len(s_primes), dtype=torch.float32))
+                    for i_sample, (s_prime, idx_choice) in enumerate(s_primes):
+                        # Bootstrapping Value Evaluation
+                        if s_prime is not None:
+                            s_prime = [device(s) for s in s_prime]
+                            bootstrap_value[i_sample] = context['algorithm'].operator(old_value_function(*s_prime).flatten().detach(), idx_choice)
 
                         reward += bootstrap_value
 

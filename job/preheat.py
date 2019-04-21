@@ -99,7 +99,7 @@ def train_conv(args):
     X_train_0 = np.zeros((len(X_train), 1), dtype=np.float32)
     X_test_0 = np.zeros((len(X_test), 1), dtype=np.float32)
 
-    conv = Conv(out_channels=5, with_dealer=True)
+    conv = Conv(out_channels=15, with_dealer=True)
     model = Model(
         conv,
         torch.optim.SGD(
