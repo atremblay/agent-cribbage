@@ -59,7 +59,7 @@ class DeeperFF(ValueFunction):
 
     def get_after_state(self, state, env):
 
-        frs = np.zeros((len(state.hand), 11 * 13))
+        frs = np.zeros((len(state.hand), 11 * 13), dtype='float32')
 
         for i, card in enumerate(state.hand):
             frs[i] = self.feature_representation_Full(state, env, card)
@@ -78,7 +78,7 @@ class DeeperFF(ValueFunction):
             + 13 Action, card to play
         """
 
-        fr = np.zeros(11 * 13)
+        fr = np.zeros(11 * 13, dtype='float32')
 
         # Hand
         hand = [c.rank_value for c in state.hand]

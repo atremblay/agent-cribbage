@@ -28,6 +28,13 @@ class Play(Job):
 
             while not done:
 
+                # Resolve Previous player
+                if state.reward_id is None:
+                    previous_player = env.dealer
+                else:
+                    if state.hand_id != state.reward_id:
+                        previous_player = state.reward_id
+
                 if env.new_hand:
                     hand += 1
 
@@ -44,13 +51,15 @@ class Play(Job):
                     self.logger.human('Crib: ' + str(env.crib))
                     state, reward, done, debug = env.step([])
 
-
+                # Update rewards
                 self.agents[state.reward_id].store_reward(reward)
+                self.agents[previous_player].update_offensive_defensive(hand, env.prev_phase, reward)
+
                 self.logger.human('\t\t\t\t\t\t\t\t\t\t\t\t\tScore:' + str([a.total_points for a in self.agents]))
                 self.append_data(self.agents, env, state, hand)
 
-                assert self.agents[0].total_points == env.scores[0]
-                assert self.agents[1].total_points == env.scores[1]
+                # assert self.agents[0].total_points == env.scores[0]
+                # assert self.agents[1].total_points == env.scores[1]
 
                 # Check if current reward has determine a winner
                 if self.agents[state.reward_id].total_points >= 121:

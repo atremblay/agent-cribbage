@@ -14,13 +14,13 @@ class AllRewards_Phase0(Algorithm):
         data = []
 
         for hand, hand_data in file_data['data'][0].items():
-            reward_phase0 = hand_data[0][1]
+            reward_phase0 = hand_data[0][1]['raw']
 
             if hand in file_data['data'][1]:
-                reward_phase1 = sum([s[1] for s in file_data['data'][1][hand]])
+                reward_phase1 = sum([s[1]['raw'] for s in file_data['data'][1][hand]])
 
                 if hand in file_data['data'][2]:
-                    reward_phase2 = file_data['data'][2][hand][0][1]
+                    reward_phase2 = file_data['data'][2][hand][0][1]['raw']
 
                     sample = []
                     for s in hand_data[0][0][0]:
@@ -35,8 +35,9 @@ class AllRewards_Phase0(Algorithm):
 
 @register
 class NStep_Phase1(Algorithm):
-    def __init__(self, data_files, value_function, policy, n_step=1):
+    def __init__(self, data_files, value_function, policy, n_step=1, reward_data='raw'):
         self.n_step = n_step
+        self.reward_data = reward_data
         super().__init__(data_files, value_function, policy)
 
     def _preprocess_file(self, file_data):
@@ -45,10 +46,11 @@ class NStep_Phase1(Algorithm):
 
             for i, ((s_i, idx_choice), R_i_plus_1) in enumerate(file_data['data'][1][hand]):
 
+                R_i_plus_1 = R_i_plus_1[self.reward_data]
                 boot_strap_idx = len(hand_data) if self.n_step is None else min(i+self.n_step, len(hand_data))
 
                 for j in range(i+1, boot_strap_idx):
-                    R_i_plus_1 += hand_data[j][1]
+                    R_i_plus_1 += hand_data[j][1][self.reward_data]
 
                 s_prime = [None, None]
                 if boot_strap_idx < len(hand_data):

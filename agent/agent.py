@@ -32,7 +32,10 @@ class Agent:
         self.reward = []
 
     def _reset_current_data(self):
-        self.current_data = [None, 0]
+        self.current_data = self._default_data()
+
+    def _default_data(self):
+        return [None, {'raw': 0, 'offensive_defensive': 0}]
 
     def store_state(self, state, idx_choice):
         if self.current_data[0] is not None:
@@ -40,7 +43,9 @@ class Agent:
         self.current_data[0] = (state, idx_choice)
 
     def store_reward(self, reward):
-        self.current_data[1] += reward
+        self.current_data[1]['raw'] += reward
+        self.current_data[1]['offensive_defensive'] += reward
+
         self.reward.append(reward)
 
     def append_data(self, hand_no, phase, no_state=False):
@@ -55,6 +60,13 @@ class Agent:
         else:
             this_phase[hand].append(self.current_data)
         self._reset_current_data()
+
+    def update_offensive_defensive(self, hand_no, phase, opp_reward):
+        this_phase = self.data['data'][phase]
+        # Init dictionary for new hand
+        hand = 'hand-' + str(hand_no)
+        if hand in this_phase:
+            this_phase[hand][-1][1]['offensive_defensive'] -= opp_reward
 
     def dump_data(self, root, agent_id):
         path = os.path.join(root, agent_id+'_'+self.hash()+'.pickle')
