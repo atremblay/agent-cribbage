@@ -1,22 +1,18 @@
 Agents:
   - number: 1
-    file:
+    file: ./agent-cribbage/models/Train_agent_ConvLstm_Dealer+split_discarded_Sarsa_480.tar
     kwargs:
       value_functions:
-        - {class: Conv, kwargs: {}}
-        - {class: LSTM, kwargs: {}}
-      optimizers:
-        - {class: Adam, kwargs: {lr: 0.001}}
-        - {class: Adam, kwargs: {lr: 0.001}}
+        - {class: Conv, kwargs: {out_channels: 15, with_dealer: True}}
+        - {class: ConvLstm, kwargs: {split_discarded: True}}
+      optimizers: []
       algorithms:
-        - {class: AllRewards_Phase0, kwargs: {}}
-        - {class: OneStep_Sarsa, kwargs: {}}
       policies:
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.05},
+           kwargs: {epsilon: 0.0},
            callback: {name: choose_phase0, kwargs: {}}}
         - {class: EpsilonGreedy,
-           kwargs: {epsilon: 0.05},
+           kwargs: {epsilon: 0.0},
            callback: {name: choose_phase1, kwargs: {}}}
   - number: 1
     file:
